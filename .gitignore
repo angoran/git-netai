@@ -1,0 +1,112 @@
+# Python-generated files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+wheels/
+*.egg-info
+*.egg
+.Python
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables (sensitive credentials)
+.env
+.env.local
+.env.*.local
+*.env
+
+# UV package manager
+uv.lock
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# IDE and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.pydevproject
+.settings/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+.directory
+
+# Testing
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Documentation
+docs/_build/
+site/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+temp/
+tmp/
+
+# Network device specific (DO NOT COMMIT)
+devices.json
+hosts.txt
+credentials.txt
+inventory.yaml
+inventory.yml
+
+# Personal configuration files
+.claude/
+config.local.json
+settings.local.json
+
+# Personal doc
+AUTODETECT_FEATURE.md
+CLAUDE_DESKTOP_SETUP.md
+CONTRIBUTING.md
+GITHUB_READY_CHECKLIST.md
+DEPLOYMENT_COMMANDS.sh
+CODE_OF_CONDUCT.md
+WARP_SETUP.md
+
+# MCP configuration files (may contain sensitive paths)
+# Uncomment if you don't want to track these
+# mcp_config.json
+# claude_desktop_config.json
+# warp_mcp_config.json

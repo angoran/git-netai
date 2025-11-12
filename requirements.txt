@@ -1,0 +1,8 @@
+# MCP Server Framework
+fastmcp>=2.13.0
+
+# Environment Variables Management
+python-dotenv>=1.0.0
+
+# Multi-Vendor Network Device Library
+netmiko>=4.0.0

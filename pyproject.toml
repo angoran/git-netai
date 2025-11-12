@@ -1,0 +1,14 @@
+[project]
+name = "git-netai"
+version = "0.1.0"
+description = "MCP Server for network device management via SSH"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=0.1.0",
+    "python-dotenv>=1.0.0",
+    "netmiko>=4.0.0"
+]
+
+[project.scripts]
+net-ai-assistant = "main:mcp.run"
