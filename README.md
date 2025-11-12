@@ -364,12 +364,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🗺️ Roadmap
 
-- [ ] Add support for batch commands
-- [ ] Implement configuration backup/restore
-- [ ] Add support for SCP/SFTP file transfers
-- [ ] Create web dashboard for device management
-- [ ] Add support for authentication via SSH keys
-- [ ] Implement command templates and macros
-- [ ] Add audit logging and compliance reporting
+- [ ] Add connector GrayLog API
+- [ ] Add connector LibreNMS API
+- [ ] Add connector Cisco APIC API
+- [ ] Add connector ARUBA API
 
+Of course, not all endpoints will be included initially, but they will be added over time.
 ---
