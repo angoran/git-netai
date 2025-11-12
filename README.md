@@ -109,8 +109,6 @@ Add to `%APPDATA%\Claude\claude_desktop_config.json`:
 
 **Note:** On Windows, use double backslashes (`\\`) in paths or forward slashes (`/`).
 
-See [CLAUDE_DESKTOP_SETUP.md](CLAUDE_DESKTOP_SETUP.md) for detailed instructions.
-
 ### For Warp AI
 
 Add to `~/.warp/mcp_config.json`:
