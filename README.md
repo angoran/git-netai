@@ -1,11 +1,9 @@
 # NET-AI-ASSISTANT 🌐
-
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.13+-green.svg)](https://github.com/jlowin/fastmcp)
 [![Netmiko](https://img.shields.io/badge/Netmiko-4.0+-orange.svg)](https://github.com/ktbyers/netmiko)
 
-A powerful MCP (Model Context Protocol) server for network device management via SSH. Execute CLI commands on routers, switches, and firewalls from 200+ vendors directly through AI assistants like Claude Desktop and Warp AI.
+A powerful MCP (Model Context Protocol) server for network device management via SSH. Execute CLI commands on routers, switches, and firewalls from 150+ vendors directly through AI assistants like Claude Desktop and Warp AI.
 
 ---
 
