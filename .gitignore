@@ -104,6 +104,10 @@ GITHUB_READY_CHECKLIST.md
 DEPLOYMENT_COMMANDS.sh
 CODE_OF_CONDUCT.md
 WARP_SETUP.md
+INTEGRATION_SUMMARY.txt
+INTEGRATION_REPORT.md
+FINAL_INTEGRATION_STATUS.md
+cp_main.py
 
 # MCP configuration files (may contain sensitive paths)
 # Uncomment if you don't want to track these
