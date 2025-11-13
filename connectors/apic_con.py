@@ -7,7 +7,7 @@ import threading
 import urllib.request
 import urllib.error
 import urllib.parse
-from typing import Dict, Optional, List, Any
+from typing import Dict, Optional, Any
 from dotenv import load_dotenv
 
 # Charger les variables d'environnement
@@ -366,7 +366,7 @@ def get_apic_nodes_inventory() -> Dict[str, Any]:
         "nodes": sorted(nodes, key=lambda x: int(x["id"]) if x["id"].isdigit() else 0)
     }
 
-def get_apic_epgs(tenant: str = None) -> Dict[str, Any]:
+def get_apic_epgs(tenant: Optional[str] = None) -> Dict[str, Any]:
     """
     Récupère les Endpoint Groups (EPGs) d'un tenant ou de tous les tenants.
     
@@ -424,7 +424,7 @@ def get_apic_epgs(tenant: str = None) -> Dict[str, Any]:
         "epgs": sorted(epgs, key=lambda x: (x["tenant"], x["application"], x["name"]))
     }
 
-def get_apic_interface_statistics(node_id: str = None, interface: str = None) -> Dict[str, Any]:
+def get_apic_interface_statistics(node_id: Optional[str] = None, interface: Optional[str] = None) -> Dict[str, Any]:
     """
     Récupère les statistiques d'interface pour un nœud spécifique.
     
@@ -537,7 +537,7 @@ def get_apic_events(time_range: int = 24) -> Dict[str, Any]:
         "events": events
     }
 
-def get_apic_contracts(tenant: str = None) -> Dict[str, Any]:
+def get_apic_contracts(tenant: Optional[str] = None) -> Dict[str, Any]:
     """
     Récupère les contrats de sécurité d'un tenant ou de tous les tenants.
     
@@ -738,7 +738,7 @@ def get_apic_fabric_topology() -> Dict[str, Any]:
         "links": links
     }
 
-def get_apic_traffic_analysis(tenant: str = None, epg: str = None) -> Dict[str, Any]:
+def get_apic_traffic_analysis(tenant: Optional[str] = None, epg: Optional[str] = None) -> Dict[str, Any]:
     """
     Analyse le trafic pour un tenant ou EPG spécifique.
     
@@ -795,7 +795,7 @@ def get_apic_traffic_analysis(tenant: str = None, epg: str = None) -> Dict[str, 
         "traffic_data": traffic_data
     }
 
-def get_apic_lldp_neighbors(node_id: str = None) -> Dict[str, Any]:
+def get_apic_lldp_neighbors(node_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Récupère les voisins LLDP pour un nœud ou tous les nœuds.
     
@@ -1502,7 +1502,7 @@ def get_apic_gipo_pool_config() -> Dict[str, Any]:
 
 # ========== FONCTIONS MANQUANTES DU CONNECTEUR AVANCE ==========
 
-def get_apic_vrfs(tenant: str = None) -> Dict[str, Any]:
+def get_apic_vrfs(tenant: Optional[str] = None) -> Dict[str, Any]:
     """
     Récupère les VRFs (Virtual Routing and Forwarding) d'un tenant ou tous.
 
@@ -1551,7 +1551,7 @@ def get_apic_vrfs(tenant: str = None) -> Dict[str, Any]:
         "vrfs": sorted(vrfs, key=lambda x: (x["tenant"], x["name"]))
     }
 
-def get_apic_physical_interfaces(node_id: str = None) -> Dict[str, Any]:
+def get_apic_physical_interfaces(node_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Récupère les interfaces physiques d'un nœud ou de tous les nœuds.
 

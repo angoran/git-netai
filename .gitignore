@@ -108,6 +108,7 @@ INTEGRATION_SUMMARY.txt
 INTEGRATION_REPORT.md
 FINAL_INTEGRATION_STATUS.md
 cp_main.py
+cp_README.md
 
 # MCP configuration files (may contain sensitive paths)
 # Uncomment if you don't want to track these

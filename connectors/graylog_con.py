@@ -17,7 +17,7 @@ GRAYLOG_API_URL = os.getenv("GRAYLOG_API_URL")
 GRAYLOG_USERNAME = os.getenv("GRAYLOG_USERNAME")
 GRAYLOG_PASSWORD = os.getenv("GRAYLOG_PASSWORD")
 
-def _graylog_request(endpoint: str, params: Optional[Dict] = None) -> Optional[Dict]:
+def _graylog_request(endpoint: str, params: Optional[Dict] = None) -> Dict:
     """
     Perform Graylog API request with Basic authentication.
 
