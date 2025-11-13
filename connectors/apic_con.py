@@ -169,7 +169,7 @@ def _apic_request(endpoint: str, method: str = "GET", params: Optional[Dict] = N
                 error_info = error_data["imdata"][0]
                 if "error" in error_info:
                     error_msg += f" - {error_info['error'].get('attributes', {}).get('text', '')}"
-        except:
+        except Exception:
             pass
         return {"error": error_msg}
     except Exception as e:
@@ -1222,7 +1222,6 @@ def get_apic_bridge_domains_multicast() -> Dict[str, Any]:
     bridge_domains = []
     multicast_enabled_count = 0
     igmp_enabled_count = 0
-    pim_enabled_count = 0
 
     for item in result.get("imdata", []):
         bd_data = item.get("fvBD", {}).get("attributes", {})
@@ -1286,7 +1285,7 @@ def get_apic_bridge_domains_multicast() -> Dict[str, Any]:
                                 "description": subnet_data.get("descr", ""),
                                 "type": "subnet_multicast"
                             })
-                    except:
+                    except (ValueError, KeyError):
                         pass
 
         # Ajouter l'adresse GIPo comme adresse multicast si elle existe
@@ -1345,7 +1344,6 @@ def get_apic_bridge_domains_multicast() -> Dict[str, Any]:
         "total_bridge_domains": len(bridge_domains),
         "multicast_enabled_domains": multicast_enabled_count,
         "igmp_enabled_domains": igmp_enabled_count,
-        "pim_enabled_domains": pim_enabled_count,
         "igmp_groups_learned": len(igmp_groups),
         "static_multicast_groups": len(static_groups),
         "bridge_domains": sorted(bridge_domains, key=lambda x: (x["tenant"], x["name"])),
@@ -1422,7 +1420,7 @@ def get_apic_bridge_domain_multicast_by_tenant(tenant: str) -> Dict[str, Any]:
                             bd_info["multicast_addresses"].append(multicast_info)
                             bd_info["subnets_with_multicast"].append(multicast_info)
                             multicast_addresses_total += 1
-                    except:
+                    except (ValueError, KeyError):
                         pass
 
         # Ajouter l'adresse GIPo comme adresse multicast principale
@@ -1685,7 +1683,7 @@ def search_apic_by_ip(ip_address: str) -> Dict[str, Any]:
                         "description": subnet_data.get("descr", ""),
                         "dn": dn
                     })
-            except:
+            except (ValueError, KeyError, IndexError):
                 pass
 
     return results
@@ -1830,12 +1828,15 @@ def analyze_apic_connectivity() -> Dict[str, Any]:
             analysis["fabric_health"]["total_faults"] = critical_faults.get("total_faults", 0)
 
         # Analyse multicast
-        multicast_summary = get_apic_multicast_summary()
+        multicast_summary = get_apic_bridge_domains_multicast()
         if "error" not in multicast_summary:
             analysis["multicast"] = {
                 "enabled_domains": multicast_summary.get("multicast_enabled_domains", 0),
                 "total_domains": multicast_summary.get("total_bridge_domains", 0),
-                "percentage_enabled": multicast_summary.get("percentage_multicast_enabled", 0)
+                "percentage_enabled": round(
+                    (multicast_summary.get("multicast_enabled_domains", 0) /
+                     max(multicast_summary.get("total_bridge_domains", 1), 1)) * 100, 2
+                )
             }
 
         # Analyse de capacité (si disponible)
@@ -1849,8 +1850,8 @@ def analyze_apic_connectivity() -> Dict[str, Any]:
                     analysis["capacity"]["high_utilization_nodes"] = [
                         m["node_id"] for m in metrics if m["utilization_percent"] > 80
                     ]
-        except:
-            analysis["capacity"]["status"] = "unavailable"
+        except Exception as e:
+            analysis["capacity"]["status"] = f"unavailable: {str(e)}"
 
     except Exception as e:
         analysis["status"] = "error"

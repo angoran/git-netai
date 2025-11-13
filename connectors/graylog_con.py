@@ -6,38 +6,38 @@ import base64
 import urllib.request
 import urllib.error
 import urllib.parse
-from typing import Dict, List, Optional
+from typing import Dict, Optional
 from dotenv import load_dotenv
 
-# Charger les variables d'environnement
+# Load environment variables
 load_dotenv()
 
-# Configuration API Graylog
+# Graylog API configuration
 GRAYLOG_API_URL = os.getenv("GRAYLOG_API_URL")
 GRAYLOG_USERNAME = os.getenv("GRAYLOG_USERNAME")
 GRAYLOG_PASSWORD = os.getenv("GRAYLOG_PASSWORD")
 
 def _graylog_request(endpoint: str, params: Optional[Dict] = None) -> Optional[Dict]:
     """
-    Effectue une requete API Graylog avec authentification Basic.
-    
+    Perform Graylog API request with Basic authentication.
+
     Args:
-        endpoint: Endpoint de l'API (ex: 'streams', 'search/universal/relative')
-        params: Parametres de requete optionnels
-    
+        endpoint: API endpoint (e.g., 'streams', 'search/universal/relative')
+        params: Optional query parameters
+
     Returns:
-        Dict avec la reponse JSON ou erreur
+        Dict with JSON response or error
     """
     if not GRAYLOG_API_URL or not GRAYLOG_USERNAME or not GRAYLOG_PASSWORD:
         return {"error": "Graylog API credentials not configured"}
     
     try:
-        # Construction de l'URL
+        # Build URL
         url = f"{GRAYLOG_API_URL.rstrip('/')}/{endpoint}"
         if params:
             url += "?" + urllib.parse.urlencode(params)
-        
-        # Authentification Basic
+
+        # Basic authentication
         credentials = f"{GRAYLOG_USERNAME}:{GRAYLOG_PASSWORD}"
         encoded_credentials = base64.b64encode(credentials.encode()).decode()
         
@@ -60,19 +60,19 @@ def _graylog_request(endpoint: str, params: Optional[Dict] = None) -> Optional[D
 
 def search_logs(query: str, hours: int = 24, limit: int = 100) -> Dict:
     """
-    Recherche des messages de log avec une requete et une periode.
-    
+    Search log messages with a query and time period.
+
     Args:
-        query: Requete de recherche (ex: 'Authentication failed')
-        hours: Nombre d'heures dans le passe (defaut: 24h)
-        limit: Nombre maximum de resultats (defaut: 100)
-    
+        query: Search query (e.g., 'Authentication failed')
+        hours: Number of hours in the past (default: 24h)
+        limit: Maximum number of results (default: 100)
+
     Returns:
-        Dict avec les messages de log trouves
+        Dict with found log messages
     """
     params = {
         "query": query,
-        "range": hours * 3600,  # Conversion en secondes
+        "range": hours * 3600,  # Convert to seconds
         "limit": limit,
         "sort": "timestamp:desc"
     }
@@ -101,10 +101,10 @@ def search_logs(query: str, hours: int = 24, limit: int = 100) -> Dict:
 
 def get_streams() -> Dict:
     """
-    Recupere la liste des streams de logs disponibles.
-    
+    Retrieve the list of available log streams.
+
     Returns:
-        Dict avec la liste des streams
+        Dict with list of streams
     """
     data = _graylog_request("streams")
     if "error" in data:
@@ -127,14 +127,14 @@ def get_streams() -> Dict:
 
 def get_stream_stats(stream_id: str, hours: int = 24) -> Dict:
     """
-    Recupere les statistiques d'un stream specifique.
-    
+    Retrieve statistics for a specific stream.
+
     Args:
-        stream_id: ID du stream
-        hours: Periode d'analyse en heures (defaut: 24h)
-    
+        stream_id: Stream ID
+        hours: Analysis period in hours (default: 24h)
+
     Returns:
-        Dict avec les statistiques du stream
+        Dict with stream statistics
     """
     params = {
         "range": hours * 3600
@@ -153,10 +153,10 @@ def get_stream_stats(stream_id: str, hours: int = 24) -> Dict:
 
 def get_system_overview() -> Dict:
     """
-    Recupere l'etat general du systeme Graylog.
-    
+    Retrieve Graylog system general status.
+
     Returns:
-        Dict avec les informations systeme
+        Dict with system information
     """
     data = _graylog_request("system")
     if "error" in data:

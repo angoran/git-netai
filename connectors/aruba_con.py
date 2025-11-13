@@ -26,6 +26,7 @@ load_dotenv()
 
 def handle_aruba_errors(func):
     """Decorator for unified error handling across ARUBA API calls"""
+
     @wraps(func)
     def wrapper(*args, **kwargs):
         try:
@@ -42,6 +43,7 @@ def handle_aruba_errors(func):
         except Exception as e:
             logger.error(f"Unexpected error in {func.__name__}: {e}")
             return {"success": False, "error": str(e), "data": None}
+
     return wrapper
 
 
@@ -60,7 +62,9 @@ class ArubaConnector:
 
         self.session_token = None
         self.session = requests.Session()
-        self.session.verify = False  # Disable SSL verification for self-signed certificates
+        self.session.verify = (
+            False  # Disable SSL verification for self-signed certificates
+        )
 
         logger.info(f"ARUBA Connector initialized for {self.base_url}")
 
@@ -78,10 +82,7 @@ class ArubaConnector:
 
             logger.info("Attempting to authenticate to ARUBA controller")
             response = self.session.post(
-                login_url,
-                headers=headers,
-                data=data,
-                timeout=self.timeout
+                login_url, headers=headers, data=data, timeout=self.timeout
             )
             response.raise_for_status()
 
@@ -92,7 +93,9 @@ class ArubaConnector:
                 logger.info("Successfully authenticated to ARUBA controller")
                 return True
             else:
-                logger.error(f"Authentication failed: {result.get('_global_result', {}).get('status_str')}")
+                logger.error(
+                    f"Authentication failed: {result.get('_global_result', {}).get('status_str')}"
+                )
                 return False
 
         except Exception as e:
@@ -138,7 +141,9 @@ class ArubaConnector:
         return True
 
     @handle_aruba_errors
-    def _make_request(self, endpoint: str, method: str = "GET", data: Optional[Dict] = None) -> Dict[str, Any]:
+    def _make_request(
+        self, endpoint: str, method: str = "GET", data: Optional[Dict] = None
+    ) -> Dict[str, Any]:
         """
         Generic method to make authenticated API requests to ARUBA controller
 
@@ -165,7 +170,11 @@ class ArubaConnector:
             elif method.upper() == "POST":
                 response = self.session.post(url, json=data, timeout=self.timeout)
             else:
-                return {"success": False, "error": f"Unsupported method: {method}", "data": None}
+                return {
+                    "success": False,
+                    "error": f"Unsupported method: {method}",
+                    "data": None,
+                }
 
             # Check if token expired (401 or 403), re-authenticate once
             if response.status_code in [401, 403]:
@@ -177,9 +186,15 @@ class ArubaConnector:
                     if method.upper() == "GET":
                         response = self.session.get(url, timeout=self.timeout)
                     elif method.upper() == "POST":
-                        response = self.session.post(url, json=data, timeout=self.timeout)
+                        response = self.session.post(
+                            url, json=data, timeout=self.timeout
+                        )
                 else:
-                    return {"success": False, "error": "Re-authentication failed", "data": None}
+                    return {
+                        "success": False,
+                        "error": "Re-authentication failed",
+                        "data": None,
+                    }
 
             response.raise_for_status()
 
@@ -189,7 +204,11 @@ class ArubaConnector:
             except ValueError as e:
                 # If response is not JSON, return the text content
                 logger.warning(f"Response is not JSON, returning text: {e}")
-                return {"success": True, "error": None, "data": {"_text": response.text, "_raw_response": True}}
+                return {
+                    "success": True,
+                    "error": None,
+                    "data": {"_text": response.text, "_raw_response": True},
+                }
 
             return {"success": True, "error": None, "data": result}
 
@@ -438,7 +457,9 @@ def format_response(result: Dict[str, Any], command_name: str) -> str:
         Formatted string for display
     """
     if not result.get("success"):
-        return f"❌ Error executing {command_name}: {result.get('error', 'Unknown error')}"
+        return (
+            f"❌ Error executing {command_name}: {result.get('error', 'Unknown error')}"
+        )
 
     data = result.get("data")
     if not data:
