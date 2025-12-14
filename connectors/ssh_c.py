@@ -37,7 +37,10 @@ async def connect_ssh(ip_address: str, command: str) -> Tuple[bool, str]:
             password=SSH_PASSWORD,
             known_hosts=None) as conn:
             result = await conn.run(command, check=True)
-            return True, result.stdout
+            stdout = result.stdout or ""
+            if isinstance(stdout, bytes):
+                stdout = stdout.decode('utf-8', errors='replace')
+            return True, stdout
     except asyncssh.PermissionDenied:
         err_msg = f"SSH authentication error on {ip_address}: Check your credentials."
         print(err_msg)
