@@ -1,8 +1,9 @@
 # /connectors/ssh_c.py
 
 import asyncssh
+import asyncio
 import os
-from typing import Tuple
+from typing import Tuple, List, Dict
 from dotenv import load_dotenv
 
 # Loading environment variables (override system env vars)
@@ -61,3 +62,55 @@ async def send_custom_command(ip_address: str, command: str) -> dict:
         "success": success,
         "output": output
     }
+
+
+async def send_custom_command_parallel(targets: List[Dict[str, str]], timeout: int = 30) -> Dict:
+    """
+    Execute SSH commands on multiple devices in parallel.
+
+    Args:
+        targets: List of target dictionaries with "ip" and "command" keys.
+                 Example: [{"ip": "192.168.1.1", "command": "show version"}, ...]
+        timeout: Global timeout in seconds for all operations (default: 30s)
+
+    Returns:
+        Dict mapping each IP to its result: {"192.168.1.1": {"success": bool, "output": str}, ...}
+    """
+    async def execute_single(target: Dict[str, str]) -> Tuple[str, Dict]:
+        """Execute command on a single target and return (ip, result)."""
+        ip = target.get("ip", "")
+        command = target.get("command", "")
+
+        if not ip or not command:
+            return ip, {"success": False, "output": "Missing ip or command in target"}
+
+        try:
+            success, output = await connect_ssh(ip, command)
+            return ip, {"success": success, "output": output}
+        except Exception as e:
+            return ip, {"success": False, "output": f"Execution error: {str(e)}"}
+
+    # Execute all commands in parallel with timeout protection
+    try:
+        tasks = [execute_single(target) for target in targets]
+        results = await asyncio.wait_for(
+            asyncio.gather(*tasks, return_exceptions=True),
+            timeout=timeout
+        )
+
+        # Build result dictionary
+        result_dict = {}
+        for result in results:
+            if isinstance(result, Exception):
+                # Handle exceptions from gather
+                result_dict["unknown"] = {"success": False, "output": f"Task exception: {str(result)}"}
+            elif isinstance(result, tuple) and len(result) == 2:
+                ip, output = result
+                result_dict[ip] = output
+
+        return result_dict
+
+    except asyncio.TimeoutError:
+        return {"error": f"Global timeout ({timeout}s) exceeded for parallel execution"}
+    except Exception as e:
+        return {"error": f"Parallel execution error: {str(e)}"}

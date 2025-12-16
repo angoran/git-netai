@@ -1,7 +1,7 @@
 from mcp.server.fastmcp import FastMCP
 
 # Import the necessary functions
-from connectors.ssh_c import send_custom_command as ssh_cli_command
+from connectors.ssh_c import send_custom_command as ssh_cli_command, send_custom_command_parallel as ssh_cli_parallel
 from connectors.mikrotik_c import (get_interfaces, get_ip_address, get_route_by_prefix,
                                    get_system_identity, get_system_health,
                                    get_system_routerboard, get_logs, get_bgp_connections,
@@ -14,11 +14,28 @@ mcp = FastMCP("netai-o")
 
 # Overview of MCP tools
 
-# ========== SSH Tool ==========
+# ========== SSH Tools ==========
 @mcp.tool()
 async def send_custom_command(identifier: str, command: str) -> dict:
-    """ Execute a remote SSH command on any RFC-compliant SSH device. """
+    """Execute a remote SSH command on any RFC-compliant SSH device."""
     return await ssh_cli_command(identifier, command)
+
+@mcp.tool()
+async def send_custom_command_parallel(targets: list, timeout: int = 30) -> dict:
+    """
+    Execute SSH commands on multiple devices in parallel.
+
+    Args:
+        targets: List of {"ip": "192.168.1.1", "command": "show version"}
+        timeout: Global timeout in seconds (default: 30s)
+
+    Example:
+        [
+            {"ip": "192.168.1.1", "command": "show version"},
+            {"ip": "192.168.1.2", "command": "show ip route"}
+        ]
+    """
+    return await ssh_cli_parallel(targets, timeout)
 
 # ========== Mikrotik Tools ==========
 @mcp.tool()
