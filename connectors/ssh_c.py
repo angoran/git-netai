@@ -64,7 +64,7 @@ async def send_custom_command(ip_address: str, command: str) -> dict:
     }
 
 
-async def send_custom_command_parallel(targets: List[Dict[str, str]], timeout: int = 30) -> Dict:
+async def send_custom_command_parallel(targets: List[Dict[str, str]], timeout: int = 120) -> Dict:
     """
     Execute SSH commands on multiple devices in parallel.
 

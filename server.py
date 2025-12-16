@@ -8,6 +8,9 @@ from connectors.mikrotik_c import (get_interfaces, get_ip_address, get_route_by_
                                    get_bgp_sessions)
 from connectors.mikrotik_ssh_c import mikrotik_route_check, mikrotik_custom_command
 from connectors.graylog_c import search_logs, get_streams, get_system_overview
+from connectors.aruba_c import (get_ap_database, get_client_list, get_rogue_ap_list,
+                                get_ap_channel_info, get_wlan_list, get_ap_statistics,
+                                get_license_info, get_controller_info, run_custom_command as aruba_custom_cmd)
 
 # Initialize the FastMCP server
 mcp = FastMCP("netai-o")
@@ -21,7 +24,7 @@ async def send_custom_command(identifier: str, command: str) -> dict:
     return await ssh_cli_command(identifier, command)
 
 @mcp.tool()
-async def send_custom_command_parallel(targets: list, timeout: int = 30) -> dict:
+async def send_custom_command_parallel(targets: list, timeout: int = 120) -> dict:
     """
     Execute SSH commands on multiple devices in parallel.
 
@@ -109,6 +112,52 @@ async def graylog_get_streams() -> dict:
 async def graylog_system_info() -> dict:
     """Retrieve Graylog system information."""
     return await get_system_overview()
+
+# ========== Aruba WiFi Controller Tools ==========
+@mcp.tool()
+async def aruba_get_ap_database(limit: int = None) -> dict:
+    """Get complete list of Access Points from Aruba controller."""
+    return await get_ap_database(limit)
+
+@mcp.tool()
+async def aruba_get_clients(limit: int = None) -> dict:
+    """Get list of connected WiFi clients."""
+    return await get_client_list(limit)
+
+@mcp.tool()
+async def aruba_get_rogue_aps(limit: int = None) -> dict:
+    """Get list of unauthorized/rogue access points (Security)."""
+    return await get_rogue_ap_list(limit)
+
+@mcp.tool()
+async def aruba_get_channels() -> dict:
+    """Get active channel information for RF optimization."""
+    return await get_ap_channel_info()
+
+@mcp.tool()
+async def aruba_get_wlans() -> dict:
+    """Get WLAN/SSID profile configuration."""
+    return await get_wlan_list()
+
+@mcp.tool()
+async def aruba_get_ap_stats() -> dict:
+    """Get AP performance metrics and ARM state."""
+    return await get_ap_statistics()
+
+@mcp.tool()
+async def aruba_get_licenses() -> dict:
+    """Get license compliance information."""
+    return await get_license_info()
+
+@mcp.tool()
+async def aruba_get_controller_info() -> dict:
+    """Get Aruba controller system information and version."""
+    return await get_controller_info()
+
+@mcp.tool()
+async def aruba_custom_command(command: str) -> dict:
+    """Execute custom show command on Aruba controller (e.g., 'show ap database')."""
+    return await aruba_custom_cmd(command)
 
 # Entry Point
 if __name__ == "__main__":
