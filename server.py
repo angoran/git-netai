@@ -1,4 +1,5 @@
 from mcp.server.fastmcp import FastMCP
+from typing import Optional
 
 # Import the necessary functions
 from connectors.ssh_c import send_custom_command as ssh_cli_command, send_custom_command_parallel as ssh_cli_parallel
@@ -11,6 +12,10 @@ from connectors.graylog_c import search_logs, get_streams, get_system_overview
 from connectors.aruba_c import (get_ap_database, get_client_list, get_rogue_ap_list,
                                 get_ap_channel_info, get_wlan_list, get_ap_statistics,
                                 get_license_info, get_controller_info, run_custom_command as aruba_custom_cmd)
+from connectors.librenms_c import (list_devices, get_devices_by_os, get_device_by_hostname,
+                                   get_device_health, get_device_sensors, get_device_ports,
+                                   get_locations, get_eventlog, get_device_eventlog, get_device_stats)
+from connectors.paloalto_c import palo_send_command, palo_send_command_parallel
 
 # Initialize the FastMCP server
 mcp = FastMCP("netai-o")
@@ -20,13 +25,20 @@ mcp = FastMCP("netai-o")
 # ========== SSH Tools ==========
 @mcp.tool()
 async def send_custom_command(identifier: str, command: str) -> dict:
-    """Execute a remote SSH command on any RFC-compliant SSH device."""
+    """
+    Execute SSH command on generic network devices (Cisco, Juniper, Arista, Linux, etc.).
+
+    ⚠️ NOT for Palo Alto firewalls - use paloalto_send_command instead.
+    Works with standard SSH devices that don't require PTY interactive sessions.
+    """
     return await ssh_cli_command(identifier, command)
 
 @mcp.tool()
 async def send_custom_command_parallel(targets: list, timeout: int = 120) -> dict:
     """
-    Execute SSH commands on multiple devices in parallel.
+    Execute SSH commands on multiple generic network devices in parallel.
+
+    ⚠️ NOT for Palo Alto firewalls - use paloalto_send_command_parallel instead.
 
     Args:
         targets: List of {"ip": "192.168.1.1", "command": "show version"}
@@ -115,17 +127,17 @@ async def graylog_system_info() -> dict:
 
 # ========== Aruba WiFi Controller Tools ==========
 @mcp.tool()
-async def aruba_get_ap_database(limit: int = None) -> dict:
+async def aruba_get_ap_database(limit: Optional[int] = None) -> dict:
     """Get complete list of Access Points from Aruba controller."""
     return await get_ap_database(limit)
 
 @mcp.tool()
-async def aruba_get_clients(limit: int = None) -> dict:
+async def aruba_get_clients(limit: Optional[int] = None) -> dict:
     """Get list of connected WiFi clients."""
     return await get_client_list(limit)
 
 @mcp.tool()
-async def aruba_get_rogue_aps(limit: int = None) -> dict:
+async def aruba_get_rogue_aps(limit: Optional[int] = None) -> dict:
     """Get list of unauthorized/rogue access points (Security)."""
     return await get_rogue_ap_list(limit)
 
@@ -158,6 +170,86 @@ async def aruba_get_controller_info() -> dict:
 async def aruba_custom_command(command: str) -> dict:
     """Execute custom show command on Aruba controller (e.g., 'show ap database')."""
     return await aruba_custom_cmd(command)
+
+# ========== Palo Alto Firewall Tools ==========
+@mcp.tool()
+async def paloalto_send_command(ip_address: str, command: str) -> dict:
+    """
+    Execute SSH command specifically on Palo Alto firewalls.
+
+    🔥 USE THIS for ALL Palo Alto firewall commands (show vpn, show system, show routing, etc.).
+    This tool uses PTY interactive sessions required by Palo Alto PAN-OS.
+
+    Examples:
+    - "show vpn gateway"
+    - "show system info"
+    - "show routing route"
+    """
+    return await palo_send_command(ip_address, command)
+
+@mcp.tool()
+async def paloalto_send_command_parallel(targets: list, timeout: int = 120) -> dict:
+    """
+    Execute SSH commands on multiple Palo Alto firewalls in parallel.
+
+    🔥 USE THIS for batch operations on multiple Palo Alto firewalls.
+
+    Args:
+        targets: List of {"ip": "10.240.203.241", "command": "show vpn gateway"}
+        timeout: Global timeout in seconds (default: 120s)
+    """
+    return await palo_send_command_parallel(targets, timeout)
+
+# ========== LibreNMS Tools ==========
+@mcp.tool()
+async def librenms_list_devices(filter_type: Optional[str] = None, filter_value: Optional[str] = None) -> dict:
+    """List all devices or filter by criteria (type, os, location, hostname)."""
+    return await list_devices(filter_type, filter_value)
+
+@mcp.tool()
+async def librenms_get_devices_by_os(os_name: str) -> dict:
+    """Get all devices running a specific OS (e.g., 'routeros', 'ios', 'linux')."""
+    return await get_devices_by_os(os_name)
+
+@mcp.tool()
+async def librenms_get_device_info(hostname: str) -> dict:
+    """Get detailed device information by hostname."""
+    return await get_device_by_hostname(hostname)
+
+@mcp.tool()
+async def librenms_get_device_health(hostname: str) -> dict:
+    """Get device health information including all sensor types."""
+    return await get_device_health(hostname)
+
+@mcp.tool()
+async def librenms_get_device_sensors(hostname: str, sensor_type: Optional[str] = None) -> dict:
+    """Get device sensors with optional filter (temperature, voltage, state, etc.)."""
+    return await get_device_sensors(hostname, sensor_type)
+
+@mcp.tool()
+async def librenms_get_device_ports(hostname: str) -> dict:
+    """Get all ports/interfaces information for a device."""
+    return await get_device_ports(hostname)
+
+@mcp.tool()
+async def librenms_get_device_stats(hostname: str) -> dict:
+    """Get comprehensive device statistics (uptime, ports, availability)."""
+    return await get_device_stats(hostname)
+
+@mcp.tool()
+async def librenms_get_locations() -> dict:
+    """Get all locations configured in LibreNMS."""
+    return await get_locations()
+
+@mcp.tool()
+async def librenms_get_eventlog(limit: int = 100, sort_order: str = "DESC") -> dict:
+    """Get general event logs from LibreNMS."""
+    return await get_eventlog(limit, sort_order)
+
+@mcp.tool()
+async def librenms_get_device_eventlog(hostname: str, limit: int = 50, sort_order: str = "DESC") -> dict:
+    """Get event logs for a specific device."""
+    return await get_device_eventlog(hostname, limit, sort_order)
 
 # Entry Point
 if __name__ == "__main__":
