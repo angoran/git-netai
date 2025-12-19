@@ -391,19 +391,20 @@ async def get_all_switches() -> Dict[str, Any]:
     return await _make_request(endpoint, method="GET")
 
 
-async def get_event_records(limit: Optional[int] = None, severity: Optional[str] = None) -> Dict[str, Any]:
+async def get_event_records(limit: Optional[int] = 50, severity: Optional[str] = None) -> Dict[str, Any]:
     """
     Get event records from Nexus Dashboard event monitoring.
     This endpoint provides critical events, alarms, and system notifications.
 
     Args:
-        limit: Optional maximum number of events to return
+        limit: Maximum number of events to return (default: 50, max recommended: 1000)
         severity: Optional filter by severity (critical, error, warning, info)
 
     Returns:
         Dict with event records including:
         - metadata: Event metadata
         - items: List of event records with severity, description, timestamps, etc.
+        Note: Results are limited client-side if API returns more than requested.
 
     Example response structure:
         {
@@ -429,6 +430,16 @@ async def get_event_records(limit: Optional[int] = None, severity: Optional[str]
     """
     endpoint = "/nexus/infra/api/eventmonitoring/v1/eventrecords"
 
+    # Set default limit if not provided (prevent huge responses)
+    if limit is None:
+        limit = 50
+    
+    # Cap limit at reasonable maximum to prevent excessive data transfer
+    max_limit = 1000
+    if limit > max_limit:
+        logger.warning(f"Limit {limit} exceeds maximum {max_limit}, capping to {max_limit}")
+        limit = max_limit
+
     # Build query parameters
     params = {}
     if limit:
@@ -436,5 +447,21 @@ async def get_event_records(limit: Optional[int] = None, severity: Optional[str]
     if severity:
         params["severity"] = severity
 
-    return await _make_request(endpoint, method="GET", params=params if params else None)
+    result = await _make_request(endpoint, method="GET", params=params if params else None)
+    
+    # If request succeeded, limit results client-side if API returned more than requested
+    if result.get("success") and result.get("data"):
+        data = result["data"]
+        if isinstance(data, dict) and "items" in data and isinstance(data["items"], list):
+            items = data["items"]
+            if len(items) > limit:
+                logger.info(f"API returned {len(items)} items, limiting to {limit} client-side")
+                data["items"] = items[:limit]
+                # Update metadata if present
+                if "metadata" in data and isinstance(data["metadata"], dict):
+                    data["metadata"]["totalItems"] = len(items)
+                    data["metadata"]["returnedItems"] = limit
+                result["data"] = data
+    
+    return result
 

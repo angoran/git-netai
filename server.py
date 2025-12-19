@@ -916,17 +916,18 @@ async def ndfc_get_all_switches() -> dict:
 
 
 @mcp.tool()
-async def ndfc_get_event_records(limit: Optional[int] = None, severity: Optional[str] = None) -> dict:
+async def ndfc_get_event_records(limit: Optional[int] = 50, severity: Optional[str] = None) -> dict:
     """
     Get event records from Nexus Dashboard event monitoring.
     This endpoint provides critical events, alarms, and system notifications.
 
     Args:
-        limit: Optional maximum number of events to return
+        limit: Maximum number of events to return (default: 50, max recommended: 1000)
         severity: Optional filter by severity (critical, error, warning, info)
 
     Returns:
         Dict with event records including metadata and items with severity, description, timestamps, etc.
+        Results are automatically limited client-side if API returns more than requested.
     """
     return await get_event_records(limit, severity)
 
