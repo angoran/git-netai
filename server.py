@@ -69,6 +69,22 @@ from connectors.mikrotik_c import (
 )
 from connectors.mikrotik_ssh_c import mikrotik_custom_command, mikrotik_route_check
 from connectors.paloalto_c import palo_send_command, palo_send_command_parallel
+from connectors.ndfc_c import (
+    get_all_switches,
+    get_deployment_history,
+    get_event_records,
+    get_fabric_summary,
+    get_fabrics,
+    get_interface_details,
+    get_network_preview,
+    get_network_status,
+    get_networks,
+    get_sites,
+    get_switches,
+    get_vrfs,
+    login as ndfc_login_func,
+    logout as ndfc_logout_func,
+)
 
 # Import the necessary functions
 from connectors.ssh_c import send_custom_command as ssh_cli_command
@@ -729,6 +745,190 @@ async def apic_analyze_connectivity() -> dict:
     This is a composite function that provides an overall health check of the entire fabric.
     """
     return await analyze_apic_connectivity()
+
+
+# ========== Cisco NDFC (Nexus Dashboard Fabric Controller) Tools ==========
+@mcp.tool()
+async def ndfc_login() -> dict:
+    """
+    Authenticate to NDFC and obtain JWT token.
+    Token is valid for 3600 seconds (1 hour).
+
+    Returns:
+        Dict with success status and authentication information
+    """
+    return await ndfc_login_func()
+
+
+@mcp.tool()
+async def ndfc_logout() -> dict:
+    """
+    Logout from NDFC and clear JWT token.
+
+    Returns:
+        Dict with success status
+    """
+    return await ndfc_logout_func()
+
+
+@mcp.tool()
+async def ndfc_get_sites() -> dict:
+    """
+    Get list of NDFC sites/fabrics.
+
+    Returns:
+        Dict with sites information
+    """
+    return await get_sites()
+
+
+@mcp.tool()
+async def ndfc_get_fabrics() -> dict:
+    """
+    Get list of fabric configurations.
+
+    Returns:
+        Dict with fabrics information including fabric names, types, and status
+    """
+    return await get_fabrics()
+
+
+@mcp.tool()
+async def ndfc_get_switches(fabric_name: str) -> dict:
+    """
+    Get list of switches in a specific fabric.
+
+    Args:
+        fabric_name: Name of the fabric
+
+    Returns:
+        Dict with switches information including serial numbers, IP addresses, and status
+    """
+    return await get_switches(fabric_name)
+
+
+@mcp.tool()
+async def ndfc_get_networks(fabric_name: str) -> dict:
+    """
+    Get list of networks in a specific fabric.
+
+    Args:
+        fabric_name: Name of the fabric
+
+    Returns:
+        Dict with networks information including network names, VLANs, and configuration
+    """
+    return await get_networks(fabric_name)
+
+
+@mcp.tool()
+async def ndfc_get_vrfs(fabric_name: str) -> dict:
+    """
+    Get list of VRFs (Virtual Routing and Forwarding instances) in a specific fabric.
+
+    Args:
+        fabric_name: Name of the fabric
+
+    Returns:
+        Dict with VRFs information including VRF names and configuration
+    """
+    return await get_vrfs(fabric_name)
+
+
+@mcp.tool()
+async def ndfc_get_fabric_summary() -> dict:
+    """
+    Get summary of all fabric associations (MSD fabric-member relationships).
+
+    Returns:
+        Dict with fabric summary and associations
+    """
+    return await get_fabric_summary()
+
+
+@mcp.tool()
+async def ndfc_get_deployment_history(fabric_name: str) -> dict:
+    """
+    Get configuration deployment history for a specific fabric.
+
+    Args:
+        fabric_name: Name of the fabric
+
+    Returns:
+        Dict with deployment history records including timestamps and status
+    """
+    return await get_deployment_history(fabric_name)
+
+
+@mcp.tool()
+async def ndfc_get_network_status(fabric_name: str, network_name: str) -> dict:
+    """
+    Get deployment status for a specific network in a fabric.
+
+    Args:
+        fabric_name: Name of the fabric
+        network_name: Name of the network
+
+    Returns:
+        Dict with network status details including deployment state and errors
+    """
+    return await get_network_status(fabric_name, network_name)
+
+
+@mcp.tool()
+async def ndfc_get_network_preview(fabric_name: str, network_name: str) -> dict:
+    """
+    Get configuration preview for a specific network deployment.
+
+    Args:
+        fabric_name: Name of the fabric
+        network_name: Name of the network
+
+    Returns:
+        Dict with configuration preview for each switch showing what will be deployed
+    """
+    return await get_network_preview(fabric_name, network_name)
+
+
+@mcp.tool()
+async def ndfc_get_interface_details(serial_number: str) -> dict:
+    """
+    Get detailed interface information for a specific switch by serial number.
+
+    Args:
+        serial_number: Serial number of the switch (e.g., "FDO23460MQC")
+
+    Returns:
+        Dict with list of all interfaces and their details (status, VLAN, compliance, etc.)
+    """
+    return await get_interface_details(serial_number)
+
+
+@mcp.tool()
+async def ndfc_get_all_switches() -> dict:
+    """
+    Get list of all switches across all fabrics.
+
+    Returns:
+        Dict with list of switches including serial numbers, fabric, IP addresses, etc.
+    """
+    return await get_all_switches()
+
+
+@mcp.tool()
+async def ndfc_get_event_records(limit: Optional[int] = None, severity: Optional[str] = None) -> dict:
+    """
+    Get event records from Nexus Dashboard event monitoring.
+    This endpoint provides critical events, alarms, and system notifications.
+
+    Args:
+        limit: Optional maximum number of events to return
+        severity: Optional filter by severity (critical, error, warning, info)
+
+    Returns:
+        Dict with event records including metadata and items with severity, description, timestamps, etc.
+    """
+    return await get_event_records(limit, severity)
 
 
 # Entry Point
