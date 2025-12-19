@@ -204,41 +204,21 @@ async def get_device_by_hostname(hostname: str) -> Dict:
 
 async def get_device_health(hostname: str) -> Dict:
     """
-    Get device health information including all sensors.
+    Get device health information including available health graphs.
 
     Args:
         hostname: Device hostname
 
     Returns:
-        Dict with health sensors (temperature, voltage, etc.)
+        Dict with status, available health graphs (temperature, processors, storage, etc.), and count
     """
     data = await _api_request(f"devices/{hostname}/health")
 
     if not data or "error" in data:
         return data or {"error": "No response from LibreNMS API"}
 
-    # Parse sensors by type
-    sensors_by_type = {}
-
-    for sensor_type, sensor_list in data.get("graphs", {}).items():
-        if isinstance(sensor_list, list):
-            parsed_sensors = []
-            for sensor in sensor_list:
-                parsed_sensors.append({
-                    "sensor_id": sensor.get("sensor_id"),
-                    "description": sensor.get("sensor_descr"),
-                    "current": sensor.get("sensor_current"),
-                    "limit": sensor.get("sensor_limit"),
-                    "limit_low": sensor.get("sensor_limit_low"),
-                    "sensor_class": sensor.get("sensor_class"),
-                    "sensor_type": sensor.get("sensor_type")
-                })
-            sensors_by_type[sensor_type] = parsed_sensors
-
-    return {
-        "hostname": hostname,
-        "sensors": sensors_by_type
-    }
+    # Return the raw response which contains status, graphs list, and count
+    return data
 
 
 async def get_device_sensors(hostname: str, sensor_type: Optional[str] = None) -> Dict:
