@@ -410,10 +410,10 @@ uv run python server.py
 
 ### 🚀 Future Enhancements
 
-- [ ] Cisco DNA Center API
-- [ ] Fortinet FortiManager API
-- [ ] Juniper Mist API
-- [ ] Telemetry support (gNMI, NETCONF)
+- [ ] Integration API Panorama
+- [ ] Add more LibreNMS endpoints (alerts, device groups, inventory)
+- [ ] Add more APIC endpoints (troubleshooting, change management)
+- [ ] Expand Aruba capabilities (RF analytics, heat maps)
 
 ---
 
