@@ -1,4 +1,4 @@
-# netai-o 🌐
+# NETWORK AI ASSISTANT 🌐
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![FastMCP](https://img.shields.io/badge/FastMCP-2.13+-green.svg)](https://github.com/jlowin/fastmcp)
@@ -50,8 +50,8 @@ Expose your network devices, WiFi controllers, monitoring systems, and data cent
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-repo/netai-o.git
-cd netai-o
+git clone https://github.com/your-repo/git-netai.git
+cd netai
 
 # 2. Sync dependencies (UV automatically creates virtual environment)
 uv sync
@@ -137,7 +137,7 @@ NDFC_TIMEOUT="30"
       "command": "uv",
       "args": [
         "--directory",
-        "/absolute/path/to/netai-o",
+        "/absolute/path/to/netai",
         "run",
         "python",
         "server.py"
@@ -157,7 +157,7 @@ NDFC_TIMEOUT="30"
     "netai-o": {
       "command": "uv",
       "args": ["run", "python", "server.py"],
-      "working_directory": "/absolute/path/to/netai-o"
+      "working_directory": "/absolute/path/to/netai"
     }
   }
 }
