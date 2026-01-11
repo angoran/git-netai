@@ -9,3 +9,9 @@ wheels/
 # Virtual environments
 .venv
 .env
+
+# Custom Files
+CLAUDE.md
+.gitignore
+.claude
+_bmad*
