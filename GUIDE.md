@@ -1,4 +1,4 @@
-# netai-o - Network AI Operations MCP Server
+# netai - Network AI Operations MCP Server
 
 A Model Context Protocol (MCP) server that provides unified access to multiple network infrastructure platforms through asynchronous connectors. Supports management of Cisco APIC, NDFC, MikroTik, Palo Alto, Aruba, LibreNMS, Graylog, and generic SSH devices.
 
@@ -12,7 +12,7 @@ A Model Context Protocol (MCP) server that provides unified access to multiple n
 
 ## Prerequisites
 
-Before installing netai-o, ensure you have:
+Before installing netai, ensure you have:
 
 1. **Python 3.12 or higher** - [Download here](https://www.python.org/downloads/)
 2. **UV Package Manager** - Install with:
@@ -35,16 +35,16 @@ Before installing netai-o, ensure you have:
 
 **Option A: Using Git**
 ```cmd
-git clone <repository-url> netai-o
-cd netai-o
+git clone <repository-url> netai
+cd netai
 ```
 
 **Option B: Manual Download**
 1. Download the repository as a ZIP file
-2. Extract it to a folder (e.g., `C:\Users\YourUsername\netai-o`)
+2. Extract it to a folder (e.g., `C:\Users\YourUsername\netai`)
 3. Open Command Prompt and navigate to that folder:
    ```cmd
-   cd C:\Users\YourUsername\netai-o
+   cd C:\Users\YourUsername\netai
    ```
 
 #### Step 2: Install Dependencies
@@ -88,16 +88,16 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
 
 **Option A: Using Git**
 ```bash
-git clone <repository-url> netai-o
-cd netai-o
+git clone <repository-url> netai
+cd netai
 ```
 
 **Option B: Manual Download**
 1. Download the repository as a ZIP file
-2. Extract it to a folder (e.g., `~/netai-o`)
+2. Extract it to a folder (e.g., `~/netai`)
 3. Open Terminal and navigate to that folder:
    ```bash
-   cd ~/netai-o
+   cd ~/netai
    ```
 
 #### Step 2: Install Dependencies
@@ -146,16 +146,16 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
 
 **Option A: Using Git**
 ```bash
-git clone <repository-url> netai-o
-cd netai-o
+git clone <repository-url> netai
+cd netai
 ```
 
 **Option B: Manual Download**
 1. Download the repository as a ZIP file
-2. Extract it to a folder (e.g., `~/netai-o`)
+2. Extract it to a folder (e.g., `~/netai`)
 3. Open a terminal and navigate to that folder:
    ```bash
-   cd ~/netai-o
+   cd ~/netai
    ```
 
 #### Step 2: Install Dependencies
@@ -210,10 +210,10 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
    # or open it manually at ~/.warp/config.json
    ```
 
-2. Add the netai-o server configuration:
+2. Add the netai server configuration:
    ```json
    {
-     "netai-o": {
+     "netai": {
        "command": "uv",
        "args": [
          "run",
@@ -221,12 +221,12 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
          "server.py"
        ],
        "env": {},
-       "working_directory": "/Users/YourUsername/netai-o"
+       "working_directory": "/Users/YourUsername/netai"
      }
    }
    ```
 
-3. **Important**: Replace `/Users/YourUsername/netai-o` with the actual path to your netai-o folder
+3. **Important**: Replace `/Users/YourUsername/netai` with the actual path to your netai folder
 
 4. Save and close the editor (Ctrl+O, then Enter, then Ctrl+X if using nano)
 
@@ -239,10 +239,10 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
    notepad %APPDATA%\Warp\config.json
    ```
 
-2. Add the netai-o server configuration:
+2. Add the netai server configuration:
    ```json
    {
-     "netai-o": {
+     "netai": {
        "command": "uv",
        "args": [
          "run",
@@ -250,12 +250,12 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
          "server.py"
        ],
        "env": {},
-       "working_directory": "C:/Users/YourUsername/netai-o"
+       "working_directory": "C:/netai"
      }
    }
    ```
 
-3. **Important**: Replace `C:/Users/YourUsername/netai-o` with the actual path to your netai-o folder
+3. **Important**: Replace `C:/netai` with the actual path to your netai folder
 
 4. Save and close the editor
 
@@ -269,10 +269,10 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
    # or nano ~/.config/warp/config.json (depending on Warp installation)
    ```
 
-2. Add the netai-o server configuration:
+2. Add the netai server configuration:
    ```json
    {
-     "netai-o": {
+     "netai": {
        "command": "uv",
        "args": [
          "run",
@@ -280,12 +280,12 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
          "server.py"
        ],
        "env": {},
-       "working_directory": "/home/YourUsername/netai-o"
+       "working_directory": "/home/YourUsername/netai"
      }
    }
    ```
 
-3. **Important**: Replace `/home/YourUsername/netai-o` with the actual path to your netai-o folder
+3. **Important**: Replace `/home/YourUsername/netai` with the actual path to your netai folder
 
 4. Save and close the editor (Ctrl+O, then Enter, then Ctrl+X if using nano)
 
@@ -304,15 +304,15 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
 
    Or manually open it at: `~/Library/Application Support/Claude/claude_desktop_config.json`
 
-2. Add the netai-o server configuration:
+2. Add the netai server configuration:
    ```json
    {
      "mcpServers": {
-       "netai-o": {
+       "netai": {
          "command": "uv",
          "args": [
            "--directory",
-           "/Users/YourUsername/netai-o",
+           "/Users/YourUsername/netai",
            "run",
            "python",
            "server.py"
@@ -322,7 +322,7 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
    }
    ```
 
-3. **Important**: Replace `/Users/YourUsername/netai-o` with the actual path to your netai-o folder
+3. **Important**: Replace `/Users/YourUsername/netai` with the actual path to your netai folder
 
 4. Save and close the editor (Ctrl+O, then Enter, then Ctrl+X if using nano)
 
@@ -337,15 +337,15 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
 
    Or navigate manually to: `C:\Users\YourUsername\AppData\Roaming\Claude\claude_desktop_config.json`
 
-2. Add the netai-o server configuration:
+2. Add the netai server configuration:
    ```json
    {
      "mcpServers": {
-       "netai-o": {
+       "netai": {
          "command": "uv",
          "args": [
            "--directory",
-           "C:\\Users\\YourUsername\\netai-o",
+           "C:\netai",
            "run",
            "python",
            "server.py"
@@ -355,7 +355,7 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
    }
    ```
 
-3. **Important**: Replace `C:\Users\YourUsername\netai-o` with the actual path to your netai-o folder (use backslashes)
+3. **Important**: On Windows `C:\netai` (use backslashes)
 
 4. Save and close the editor
 
@@ -370,15 +370,15 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
 
    Or navigate manually to: `~/.config/Claude/claude_desktop_config.json`
 
-2. Add the netai-o server configuration:
+2. Add the netai server configuration:
    ```json
    {
      "mcpServers": {
-       "netai-o": {
+       "netai": {
          "command": "uv",
          "args": [
            "--directory",
-           "/home/YourUsername/netai-o",
+           "/home/YourUsername/netai",
            "run",
            "python",
            "server.py"
@@ -388,7 +388,7 @@ You should see the server running without errors. Press `Ctrl+C` to stop it.
    }
    ```
 
-3. **Important**: Replace `/home/YourUsername/netai-o` with the actual path to your netai-o folder
+3. **Important**: Replace `/home/YourUsername/netai` with the actual path to your netai folder
 
 4. Save and close the editor (Ctrl+O, then Enter, then Ctrl+X if using nano)
 
@@ -402,13 +402,13 @@ After configuration, verify that everything works:
 
 ### For Claude Desktop
 1. Open Claude Desktop
-2. Start a conversation and mention "netai-o" or ask about network operations
-3. You should see netai-o tools available in the tool use indicator
+2. Start a conversation and mention "netai" or ask about network operations
+3. You should see netai tools available in the tool use indicator
 
 ### For Warp
 1. Open Warp
-2. Invoke the netai-o server in a prompt context
-3. You should be able to use netai-o tools in your workflow
+2. Invoke the netai server in a prompt context
+3. You should be able to use netai tools in your workflow
 
 ---
 
@@ -434,7 +434,7 @@ python3 --version
 2. Check that credentials are correct (no extra spaces)
 3. Ensure the `.env` file is in the root directory of the project
 
-### Issue: Claude Desktop doesn't show netai-o tools
+### Issue: Claude Desktop doesn't show netai tools
 **Solution**:
 1. Verify the configuration file is in the correct location
 2. Check that the path in the configuration is correct and uses proper syntax (backslashes on Windows, forward slashes on macOS/Linux)
