@@ -1,8 +1,8 @@
 """
-Panorama (PAN-OS 11.1) Connector - Version Asynchrone
-Fournit la connectivité à Palo Alto Panorama via l'API XML
-Architecture hybride : Transport asynchrone (httpx) avec sortie JSON uniquement
-IMPORTANT: Le XML est strictement interne, jamais exposé aux outils MCP
+Panorama (PAN-OS 11.1) Connector - Async Version
+Provides connectivity to Palo Alto Panorama via XML API
+Hybrid architecture: Async transport (httpx) with JSON-only output
+IMPORTANT: XML is strictly internal, never exposed to MCP tools
 """
 
 import logging
@@ -14,32 +14,32 @@ from typing import Any, Dict, Optional
 import httpx
 from dotenv import load_dotenv
 
-# Configuration du logging
+# Logging configuration
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Charger les variables d'environnement
+# Load environment variables
 load_dotenv()
 
 
 def handle_panorama_errors(func):
-    """Décorateur pour la gestion unifiée des erreurs pour les appels API Panorama asynchrones"""
+    """Decorator for unified error handling for async Panorama API calls"""
 
     @wraps(func)
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
         except httpx.TimeoutException:
-            logger.error(f"Erreur de timeout dans {func.__name__}")
-            return {"success": False, "error": "Timeout de la requête", "data": None}
+            logger.error(f"Timeout error in {func.__name__}")
+            return {"success": False, "error": "Request timeout", "data": None}
         except httpx.ConnectError:
-            logger.error(f"Erreur de connexion dans {func.__name__}")
-            return {"success": False, "error": "Échec de la connexion", "data": None}
+            logger.error(f"Connection error in {func.__name__}")
+            return {"success": False, "error": "Connection failed", "data": None}
         except httpx.HTTPStatusError as e:
-            logger.error(f"Erreur HTTP dans {func.__name__}: {e}")
-            return {"success": False, "error": f"Erreur HTTP: {str(e)}", "data": None}
+            logger.error(f"HTTP error in {func.__name__}: {e}")
+            return {"success": False, "error": f"HTTP error: {str(e)}", "data": None}
         except Exception as e:
-            logger.error(f"Erreur inattendue dans {func.__name__}: {e}")
+            logger.error(f"Unexpected error in {func.__name__}: {e}")
             return {"success": False, "error": str(e), "data": None}
 
     return wrapper
@@ -47,16 +47,16 @@ def handle_panorama_errors(func):
 
 class PanoramaConnector:
     """
-    Connecteur API Panorama (PAN-OS 11.1)
-    Gère l'authentification via keygen et les opérations API XML
-    RÈGLE D'OR: Le XML est interne uniquement, toutes les sorties sont JSON
+    Panorama API Connector (PAN-OS 11.1)
+    Handles authentication via keygen and XML API operations
+    GOLDEN RULE: XML is internal only, all outputs are JSON
     """
 
     def __init__(self):
-        """Initialiser le connecteur Panorama avec la configuration depuis l'environnement"""
-        # Récupérer l'URL de base depuis .env et construire l'URL complète de l'API
+        """Initialize Panorama connector with configuration from environment"""
+        # Get base URL from .env and build full API URL
         base_url = os.getenv("PANORAMA_URL", "https://panorama.p.priv.ina/api")
-        # S'assurer que l'URL se termine par /api
+        # Ensure URL ends with /api
         if not base_url.endswith("/api"):
             self.base_url = f"{base_url.rstrip('/')}/api"
         else:
@@ -67,87 +67,87 @@ class PanoramaConnector:
         self.timeout = int(os.getenv("PANORAMA_TIMEOUT", "30"))
 
         self.api_key: Optional[str] = None
-        # Configuration pour désactiver la vérification SSL (certificats auto-signés)
+        # Configuration to disable SSL verification (self-signed certificates)
         self.verify_ssl = False
 
-        logger.info(f"Connecteur Panorama initialisé pour {self.base_url}")
+        logger.info(f"Panorama connector initialized for {self.base_url}")
 
     def _parse_xml_response(self, xml_text: str) -> Dict[str, Any]:
         """
-        Parse la réponse XML et convertit en JSON normalisé
-        CRITIQUE: Cette méthode ne doit JAMAIS exposer du XML en sortie
+        Parse XML response and convert to normalized JSON
+        CRITICAL: This method must NEVER expose XML in output
 
         Args:
-            xml_text: Réponse XML brute de l'API
+            xml_text: Raw XML response from API
 
         Returns:
-            Dict avec le statut et les données normalisées en JSON
+            Dict with status and normalized JSON data
         """
         try:
             root = ET.fromstring(xml_text)
 
-            # Vérifier le statut de la réponse
+            # Check response status
             status = root.get("status")
 
             if status == "success":
-                # Extraire le contenu de <result>
+                # Extract content from <result>
                 result_elem = root.find("result")
                 if result_elem is not None:
-                    # Convertir l'élément XML en dictionnaire
+                    # Convert XML element to dictionary
                     data = self._xml_element_to_dict(result_elem)
                     return {"success": True, "error": None, "data": data}
                 else:
                     return {
                         "success": True,
                         "error": None,
-                        "data": {"message": "Succès sans données"},
+                        "data": {"message": "Success without data"},
                     }
             else:
-                # Extraire le message d'erreur si présent
+                # Extract error message if present
                 msg_elem = root.find(".//msg")
-                error_msg = msg_elem.text if msg_elem is not None else "Erreur inconnue"
+                error_msg = msg_elem.text if msg_elem is not None else "Unknown error"
                 return {"success": False, "error": error_msg, "data": None}
 
         except ET.ParseError as e:
-            logger.error(f"Erreur de parsing XML: {e}")
+            logger.error(f"XML parsing error: {e}")
             return {
                 "success": False,
-                "error": f"Erreur de parsing XML: {str(e)}",
+                "error": f"XML parsing error: {str(e)}",
                 "data": None,
             }
         except Exception as e:
-            logger.error(f"Erreur inattendue lors du parsing: {e}")
+            logger.error(f"Unexpected error during parsing: {e}")
             return {"success": False, "error": str(e), "data": None}
 
     def _xml_element_to_dict(self, element: ET.Element) -> Any:
         """
-        Convertit récursivement un élément XML en dictionnaire Python
-        Gère les cas spéciaux: listes, valeurs simples, structures imbriquées
+        Recursively convert XML element to Python dictionary
+        Handles special cases: lists, simple values, nested structures
 
         Args:
-            element: Élément XML à convertir
+            element: XML element to convert
 
         Returns:
-            Dict, List, ou str selon la structure XML
+            Dict, List, or str depending on XML structure
         """
-        # Si l'élément a des enfants
+        # If element has children
         children = list(element)
         if children:
-            # Grouper les enfants par tag pour détecter les listes
+            # Group children by tag to detect lists
             tag_count = {}
             for child in children:
                 tag_count[child.tag] = tag_count.get(child.tag, 0) + 1
 
-            # Si tous les enfants ont le même tag, c'est une liste
+            # If all children have the same tag, it's a list
             if len(tag_count) == 1 and tag_count[children[0].tag] > 1:
                 return [self._xml_element_to_dict(child) for child in children]
 
-            # Sinon c'est un dictionnaire
+            # Otherwise it's a dictionary
             result = {}
             for child in children:
                 child_data = self._xml_element_to_dict(child)
                 if child.tag in result:
-                    # Si la clé existe déjà, convertir en liste
+                    # If key already exists, convert to list
                     if not isinstance(result[child.tag], list):
                         result[child.tag] = [result[child.tag]]
                     result[child.tag].append(child_data)
@@ -155,7 +155,7 @@ class PanoramaConnector:
                     result[child.tag] = child_data
             return result
         else:
-            # Élément sans enfants - retourner le texte ou les attributs
+            # Element without children - return text or attributes
             text = element.text
             attribs = element.attrib
 
@@ -170,10 +170,10 @@ class PanoramaConnector:
 
     async def _ensure_authenticated(self) -> bool:
         """
-        S'assurer qu'on a une clé API valide, la générer si nécessaire
+        Ensure we have a valid API key, generate if necessary
 
         Returns:
-            bool: True si authentifié, False sinon
+            bool: True if authenticated, False otherwise
         """
         if not self.api_key:
             result = await self.generate_api_key()
@@ -181,7 +181,7 @@ class PanoramaConnector:
         return True
 
     # ========================================================================
-    # LAYER 1: CORE HTTP CLIENT (Méthode centrale universelle)
+    # LAYER 1: CORE HTTP CLIENT (Universal central method)
     # ========================================================================
 
     @handle_panorama_errors
@@ -189,30 +189,30 @@ class PanoramaConnector:
         self, request_type: str, params: Dict[str, str], auto_auth: bool = True
     ) -> Dict[str, Any]:
         """
-        Méthode centrale pour TOUS les appels API Panorama
-        Architecture refactorisée : 1 seul endroit pour auth/httpx/parsing/errors
+        Central method for ALL Panorama API calls
+        Refactored architecture: single place for auth/httpx/parsing/errors
 
         Args:
-            request_type: Type de requête ("keygen", "op", "config", "log")
-            params: Paramètres spécifiques à la requête (sans "type" ni "key")
-            auto_auth: Authentifier automatiquement si nécessaire (défaut: True)
+            request_type: Request type ("keygen", "op", "config", "log")
+            params: Request-specific parameters (without "type" or "key")
+            auto_auth: Automatically authenticate if necessary (default: True)
 
         Returns:
-            Dict standardisé {"success": bool, "error": str|None, "data": Any}
+            Standardized dict {"success": bool, "error": str|None, "data": Any}
         """
-        # Authentification automatique (sauf pour keygen)
+        # Automatic authentication (except for keygen)
         if auto_auth and request_type != "keygen":
             if not await self._ensure_authenticated():
                 return {
                     "success": False,
-                    "error": "Échec de l'authentification",
+                    "error": "Authentication failed",
                     "data": None,
                 }
-            # À ce stade, api_key est garanti non-None par _ensure_authenticated()
+            # At this point, api_key is guaranteed non-None by _ensure_authenticated()
             if self.api_key is not None:
                 params["key"] = self.api_key
 
-        # Ajouter le type à params
+        # Add type to params
         params["type"] = request_type
 
         try:
@@ -224,15 +224,15 @@ class PanoramaConnector:
                 response = await client.get(self.base_url, params=params)
                 response.raise_for_status()
 
-                # Parser XML → JSON (méthode existante)
+                # Parse XML → JSON (existing method)
                 result = self._parse_xml_response(response.text)
 
-                # Stocker api_key si keygen
+                # Store api_key if keygen
                 if request_type == "keygen" and result["success"]:
                     key = result["data"].get("key")
                     if key:
                         self.api_key = key
-                        logger.info("Clé API générée et stockée avec succès")
+                        logger.info("API key generated and stored successfully")
 
                 return result
 
@@ -248,7 +248,7 @@ class PanoramaConnector:
             raise
 
     # ========================================================================
-    # LAYER 2: API EXECUTORS (4 méthodes génériques par type)
+    # LAYER 2: API EXECUTORS (4 generic methods by type)
     # ========================================================================
 
     async def execute_op_command(self, cmd: str) -> Dict[str, Any]:
@@ -256,10 +256,10 @@ class PanoramaConnector:
         Execute operational command (type=op) - Show commands
 
         Args:
-            cmd: Commande XML (ex: "<show><system><info></info></system></show>")
+            cmd: XML command (e.g., "<show><system><info></info></system></show>")
 
         Returns:
-            Dict avec données JSON normalisées
+            Dict with normalized JSON data
         """
         return await self._execute_api_call(request_type="op", params={"cmd": cmd})
 
@@ -270,11 +270,11 @@ class PanoramaConnector:
         Execute configuration query (type=config)
 
         Args:
-            xpath: XPath de configuration
-            action: Action à effectuer (get, set, edit, delete)
+            xpath: Configuration XPath
+            action: Action to perform (get, set, edit, delete)
 
         Returns:
-            Dict avec données JSON normalisées
+            Dict with normalized JSON data
         """
         return await self._execute_api_call(
             request_type="config", params={"action": action, "xpath": xpath}
@@ -287,25 +287,24 @@ class PanoramaConnector:
         Execute log query (type=log)
 
         Args:
-            log_type: Type de log (config, traffic, system, threat, etc.)
-            nlogs: Nombre de logs à retourner
-            **kwargs: Paramètres additionnels pour la query
+            log_type: Log type (config, traffic, system, threat, etc.)
+            nlogs: Number of logs to return
+            **kwargs: Additional query parameters
 
         Returns:
-            Dict avec données JSON normalisées
+            Dict with normalized JSON data
         """
         params = {"log-type": log_type, "nlogs": str(nlogs), **kwargs}
         return await self._execute_api_call(request_type="log", params=params)
 
-    # Redéfinir generate_api_key pour utiliser _execute_api_call
     @handle_panorama_errors
     async def generate_api_key(self) -> Dict[str, Any]:
         """
-        Génère et retourne une clé API Panorama via l'endpoint keygen
-        Utilise maintenant _execute_api_call (architecture refactorisée)
+        Generate and return a Panorama API key via keygen endpoint
+        Now uses _execute_api_call (refactored architecture)
 
         Returns:
-            Dict avec le statut et la clé API
+            Dict with status and API key
         """
         result = await self._execute_api_call(
             request_type="keygen",
@@ -322,29 +321,29 @@ class PanoramaConnector:
         return result
 
     # ========================================================================
-    # HELPER METHODS (Parsing robuste)
+    # HELPER METHODS (Robust parsing)
     # ========================================================================
 
     def _extract_entries(self, data: Any, key: Optional[str] = None) -> list:
         """
-        Helper pour extraire entries d'une réponse XML→JSON
-        Gère automatiquement les variations dict/list de l'API Panorama
+        Helper to extract entries from XML→JSON response
+        Automatically handles dict/list variations from Panorama API
 
         Args:
-            data: Données parsées de l'API
-            key: Clé optionnelle à extraire en premier
+            data: Parsed data from API
+            key: Optional key to extract first
 
         Returns:
-            Liste normalisée d'entries
+            Normalized list of entries
         """
         if data is None:
             return []
 
-        # Extraire la clé si fournie
+        # Extract key if provided
         if key and isinstance(data, dict):
             data = data.get(key, data)
 
-        # Normaliser en liste
+        # Normalize to list
         if isinstance(data, dict):
             entries = data.get("entry", [])
             if isinstance(entries, dict):
@@ -359,25 +358,25 @@ class PanoramaConnector:
             return []
 
     # ========================================================================
-    # LAYER 3: BUSINESS LOGIC (Fonctions métier refactorisées)
+    # LAYER 3: BUSINESS LOGIC (Refactored business functions)
     # ========================================================================
 
     @handle_panorama_errors
     async def execute_op_command_legacy(self, cmd: str) -> Dict[str, Any]:
         """
-        Exécute une commande opérationnelle (type=op) sur Panorama
-        IMPORTANT: Le XML est parsé et converti en JSON avant le retour
+        Execute operational command (type=op) on Panorama
+        IMPORTANT: XML is parsed and converted to JSON before return
 
         Args:
-            cmd: Commande XML à exécuter (ex: "<show><system><info></info></system></show>")
+            cmd: XML command to execute (e.g., "<show><system><info></info></system></show>")
 
         Returns:
-            Dict avec le statut et les données normalisées en JSON uniquement
+            Dict with status and normalized JSON data only
         """
         if not await self._ensure_authenticated():
             return {
                 "success": False,
-                "error": "Échec de l'authentification",
+                "error": "Authentication failed",
                 "data": None,
             }
 
@@ -385,7 +384,7 @@ class PanoramaConnector:
             url = self.base_url
             params = {"type": "op", "cmd": cmd, "key": self.api_key}
 
-            logger.info(f"Exécution de la commande op: {cmd[:50]}...")
+            logger.info(f"Executing op command: {cmd[:50]}...")
 
             async with httpx.AsyncClient(
                 verify=self.verify_ssl, timeout=self.timeout
@@ -393,37 +392,37 @@ class PanoramaConnector:
                 response = await client.get(url, params=params)
                 response.raise_for_status()
 
-                # Parser la réponse XML et convertir en JSON
+                # Parse XML response and convert to JSON
                 result = self._parse_xml_response(response.text)
 
                 if result["success"]:
-                    logger.info("Commande exécutée avec succès")
+                    logger.info("Command executed successfully")
                 else:
-                    logger.warning(f"Commande échouée: {result.get('error')}")
+                    logger.warning(f"Command failed: {result.get('error')}")
 
                 return result
 
         except Exception as e:
-            logger.error(f"Erreur lors de l'exécution de la commande: {e}")
+            logger.error(f"Error executing command: {e}")
             raise
 
     @handle_panorama_errors
     async def get_system_info(self) -> Dict[str, Any]:
         """
-        Récupère les informations système de Panorama
-        Exécute la commande: show system info
+        Retrieve Panorama system information
+        Executes command: show system info
 
         Returns:
-            Dict JSON normalisé avec hostname, version, uptime, model, etc.
+            Normalized JSON dict with hostname, version, uptime, model, etc.
         """
         cmd = "<show><system><info></info></system></show>"
         result = await self.execute_op_command(cmd)
 
         if result["success"] and result["data"]:
-            # Normaliser la sortie pour l'outil MCP
+            # Normalize output for MCP tool
             system_info = result["data"].get("system", {})
 
-            # Construire une sortie normalisée et simplifiée
+            # Build normalized and simplified output
             normalized = {
                 "hostname": system_info.get("hostname", "N/A"),
                 "ip_address": system_info.get("ip-address", "N/A"),
@@ -452,17 +451,17 @@ class PanoramaConnector:
             return result
 
     # ========================================================================
-    # NOUVELLES FONCTIONS D'ANALYSE ET CONFORMITÉ
+    # ANALYSIS AND COMPLIANCE FUNCTIONS
     # ========================================================================
 
     @handle_panorama_errors
     async def get_managed_devices(self) -> Dict[str, Any]:
         """
-        Récupère l'inventaire complet des firewalls gérés par Panorama
-        ✨ REFACTORISÉ: Utilise _extract_entries() pour parsing simplifié
+        Retrieve complete inventory of firewalls managed by Panorama
+        Uses _extract_entries() for simplified parsing
 
         Returns:
-            Dict avec la liste des devices et leurs informations (version, HA, connexion, plugins)
+            Dict with device list and their info (version, HA, connection, plugins)
         """
         cmd = "<show><devices><all></all></devices></show>"
         result = await self.execute_op_command(cmd)
@@ -470,7 +469,7 @@ class PanoramaConnector:
         if not result["success"]:
             return result
 
-        # Parsing simplifié avec helper
+        # Simplified parsing with helper
         entries = self._extract_entries(result.get("data"), key="devices")
 
         devices = []
@@ -489,7 +488,7 @@ class PanoramaConnector:
                     "uptime": device.get("uptime", "N/A"),
                 }
 
-                # Extraire les plugins installés
+                # Extract installed plugins
                 plugins = []
                 if "plugins" in device and isinstance(device["plugins"], dict):
                     plugin_entries = device["plugins"].get("entry", [])
@@ -513,20 +512,20 @@ class PanoramaConnector:
     @handle_panorama_errors
     async def get_device_groups(self) -> Dict[str, Any]:
         """
-        Récupère la liste des Device-Groups configurés dans Panorama
-        ✨ REFACTORISÉ: Utilise execute_config_query() + _extract_entries()
+        Retrieve list of Device-Groups configured in Panorama
+        Uses execute_config_query() + _extract_entries()
 
         Returns:
-            Dict avec la liste des device-groups et leurs membres
+            Dict with device-groups list and their members
         """
-        # Appel API simplifié avec Layer 2
+        # Simplified API call with Layer 2
         xpath = "/config/devices/entry[@name='localhost.localdomain']/device-group"
         result = await self.execute_config_query(xpath)
 
         if not result["success"]:
             return result
 
-        # Parsing simplifié avec helper
+        # Simplified parsing with helper
         entries = self._extract_entries(result.get("data"), key="device-group")
 
         device_groups = []
@@ -534,7 +533,7 @@ class PanoramaConnector:
             if isinstance(dg, dict):
                 dg_name = dg.get("@name", dg.get("name", "N/A"))
 
-                # Extraire les membres (devices) avec helper
+                # Extract members (devices) with helper
                 device_entries = self._extract_entries(dg.get("devices"))
                 devices = [
                     d.get("@name", d.get("name", "Unknown"))
@@ -562,10 +561,10 @@ class PanoramaConnector:
     @handle_panorama_errors
     async def get_config_diff(self) -> Dict[str, Any]:
         """
-        Récupère les différences entre la configuration candidate et running
+        Retrieve differences between candidate and running configuration
 
         Returns:
-            Dict avec les changements non poussés
+            Dict with pending changes
         """
         cmd = "<show><config><diff></diff></config></show>"
         result = await self.execute_op_command(cmd)
@@ -573,11 +572,11 @@ class PanoramaConnector:
         if not result["success"]:
             return result
 
-        # Normaliser la sortie
+        # Normalize output
         diff_data = result.get("data", {})
         diff_text = diff_data.get("diff", "")
 
-        # Analyser le diff
+        # Analyze diff
         has_changes = bool(diff_text and diff_text.strip() and diff_text.strip() != "")
 
         return {
@@ -585,9 +584,9 @@ class PanoramaConnector:
             "error": None,
             "data": {
                 "has_pending_changes": has_changes,
-                "diff_summary": "Changements détectés"
+                "diff_summary": "Changes detected"
                 if has_changes
-                else "Aucun changement en attente",
+                else "No pending changes",
                 "diff_content": diff_text if has_changes else None,
             },
         }
@@ -597,20 +596,20 @@ class PanoramaConnector:
         self, device_group: str
     ) -> Dict[str, Any]:
         """
-        Récupère les règles de sécurité pour un Device-Group spécifique
-        Analyse les règles redondantes, sans commentaires, noms non explicites
+        Retrieve security rules for a specific Device-Group
+        Analyzes redundant rules, missing comments, non-explicit names
 
         Args:
-            device_group: Nom du device-group
+            device_group: Device-group name
 
         Returns:
-            Dict avec les règles et l'analyse de qualité
+            Dict with rules and quality analysis
         """
-        # S'assurer de l'authentification d'abord
+        # Ensure authentication first
         if not await self._ensure_authenticated():
             return {
                 "success": False,
-                "error": "Échec de l'authentification",
+                "error": "Authentication failed",
                 "data": None,
             }
 
@@ -635,7 +634,7 @@ class PanoramaConnector:
                 if not result["success"]:
                     return result
 
-                # Analyser les règles
+                # Analyze rules
                 rules_data = result.get("data", {}).get("rules", {})
                 entries = rules_data.get("entry", [])
 
@@ -654,11 +653,11 @@ class PanoramaConnector:
                         rule_name = rule.get("@name", rule.get("name", "N/A"))
                         description = rule.get("description", "")
 
-                        # Vérifier les problèmes de qualité
+                        # Check for quality issues
                         if not description or description.strip() == "":
                             issues["no_description"].append(rule_name)
 
-                        # Vérifier les noms génériques
+                        # Check for generic names
                         generic_patterns = [
                             "rule",
                             "test",
@@ -673,7 +672,7 @@ class PanoramaConnector:
                         ):
                             issues["generic_names"].append(rule_name)
 
-                        # Vérifier si la règle est trop permissive (any/any/any)
+                        # Check if rule is too permissive (any/any/any)
                         source = rule.get("source", {})
                         destination = rule.get("destination", {})
                         service = rule.get("service", {})
@@ -723,32 +722,32 @@ class PanoramaConnector:
                 }
 
         except Exception as e:
-            logger.error(f"Erreur lors de la récupération des règles: {e}")
+            logger.error(f"Error retrieving rules: {e}")
             raise
 
     @handle_panorama_errors
     async def get_config_audit_logs(self, limit: int = 100) -> Dict[str, Any]:
         """
-        Récupère l'historique des modifications de configuration (audit logs)
-        ✨ REFACTORISÉ: Utilise execute_log_query()
+        Retrieve configuration change history (audit logs)
+        Uses execute_log_query()
 
         Args:
-            limit: Nombre maximum de logs à retourner (défaut: 100, max conseillé: 1000)
+            limit: Maximum number of logs to return (default: 100, recommended max: 1000)
 
         Returns:
-            Dict avec l'historique des modifications
+            Dict with change history
         """
-        # Appel API simplifié avec Layer 2
+        # Simplified API call with Layer 2
         result = await self.execute_log_query(log_type="config", nlogs=min(limit, 5000))
 
         if not result["success"]:
             return result
 
-        # Normaliser les logs
+        # Normalize logs
         logs_data = result.get("data", {})
         logs = []
 
-        # Gérer différents formats
+        # Handle different formats
         if isinstance(logs_data, dict):
             log_entries = logs_data.get("log", {}).get("logs", {}).get("entry", [])
         elif isinstance(logs_data, list):
@@ -759,7 +758,7 @@ class PanoramaConnector:
         if isinstance(log_entries, dict):
             log_entries = [log_entries]
 
-        for entry in log_entries[:limit]:  # Limiter côté client
+        for entry in log_entries[:limit]:  # Limit client-side
             if isinstance(entry, dict):
                 logs.append(
                     {
@@ -782,22 +781,22 @@ class PanoramaConnector:
     @handle_panorama_errors
     async def get_unused_objects(self, object_type: str = "address") -> Dict[str, Any]:
         """
-        Identifie les objets non utilisés dans la configuration
+        Identify unused objects in configuration
 
         Args:
-            object_type: Type d'objet à analyser (address, address-group, service, etc.)
+            object_type: Object type to analyze (address, address-group, service, etc.)
 
         Returns:
-            Dict avec les objets non utilisés
+            Dict with unused objects
         """
         if not await self._ensure_authenticated():
             return {
                 "success": False,
-                "error": "Échec de l'authentification",
+                "error": "Authentication failed",
                 "data": None,
             }
 
-        # Récupérer les objets
+        # Retrieve objects
         xpath = "/config/devices/entry[@name='localhost.localdomain']/vsys/entry[@name='vsys1']/address"
         params = {
             "type": "config",
@@ -818,7 +817,7 @@ class PanoramaConnector:
                 if not result["success"] or not result["data"]:
                     return result
 
-                # Extraire les objets
+                # Extract objects
                 data = result["data"]
                 objects = []
                 unused = []
@@ -843,7 +842,7 @@ class PanoramaConnector:
                     if isinstance(obj, dict):
                         obj_name = obj.get("@name", obj.get("name", "N/A"))
                         objects.append(obj_name)
-                        # Simplification: marquer comme non utilisé si pas de tag
+                        # Simplification: mark as unused if no tag
                         if not obj.get("tag"):
                             unused.append(obj_name)
 
@@ -854,12 +853,12 @@ class PanoramaConnector:
                         "object_type": object_type,
                         "total_objects": len(objects),
                         "unused_count": len(unused),
-                        "unused_objects": unused[:100],  # Limiter à 100
+                        "unused_objects": unused[:100],  # Limit to 100
                     },
                 }
 
         except Exception as e:
-            logger.error(f"Erreur lors de l'analyse des objets: {e}")
+            logger.error(f"Error analyzing objects: {e}")
             raise
 
     @handle_panorama_errors
@@ -867,19 +866,19 @@ class PanoramaConnector:
         self, device_group: str, limit: int = 100
     ) -> Dict[str, Any]:
         """
-        Identifie les règles de sécurité sans Security Profile Group
+        Identify security rules without Security Profile Group
 
         Args:
-            device_group: Nom du device-group
-            limit: Limite de résultats
+            device_group: Device-group name
+            limit: Result limit
 
         Returns:
-            Dict avec les règles sans security profile
+            Dict with rules without security profile
         """
         if not await self._ensure_authenticated():
             return {
                 "success": False,
-                "error": "Échec de l'authentification",
+                "error": "Authentication failed",
                 "data": None,
             }
 
@@ -902,7 +901,7 @@ class PanoramaConnector:
                 if not result["success"]:
                     return result
 
-                # Parsing robuste selon format de réponse
+                # Robust parsing based on response format
                 data = result.get("data")
                 if data is None:
                     return {
@@ -916,7 +915,7 @@ class PanoramaConnector:
                         },
                     }
 
-                # Extraire les règles
+                # Extract rules
                 entries = []
                 if isinstance(data, dict):
                     rules_data = data.get("rules", data)
@@ -949,7 +948,7 @@ class PanoramaConnector:
                     },
                 }
         except Exception as e:
-            logger.error(f"Erreur lors de la vérification des profiles: {e}")
+            logger.error(f"Error checking security profiles: {e}")
             raise
 
     @handle_panorama_errors
@@ -957,22 +956,22 @@ class PanoramaConnector:
         self, days_threshold: int = 30
     ) -> Dict[str, Any]:
         """
-        Vérifie les certificats proches de l'expiration
+        Check for certificates approaching expiration
 
         Args:
-            days_threshold: Nombre de jours avant expiration pour alerter
+            days_threshold: Number of days before expiration to alert
 
         Returns:
-            Dict avec les certificats et leur statut d'expiration
+            Dict with certificates and their expiration status
         """
         if not await self._ensure_authenticated():
             return {
                 "success": False,
-                "error": "Échec de l'authentification",
+                "error": "Authentication failed",
                 "data": None,
             }
 
-        # Récupérer les certificats via configuration
+        # Retrieve certificates via configuration
         xpath = "/config/shared/certificate"
         params = {
             "type": "config",
@@ -992,7 +991,7 @@ class PanoramaConnector:
                 if not result["success"]:
                     return result
 
-                # Parser les certificats
+                # Parse certificates
                 data = result.get("data")
                 certificates = []
 
@@ -1007,7 +1006,7 @@ class PanoramaConnector:
                     elif isinstance(cert_data, list):
                         certificates = cert_data[:100]
 
-                # Extraire les noms de certificats
+                # Extract certificate names
                 cert_list = []
                 for cert in certificates:
                     if isinstance(cert, dict):
@@ -1030,35 +1029,35 @@ class PanoramaConnector:
                         "expiring_count": 0,
                         "expired_count": 0,
                         "note": "Certificate list retrieved, expiration analysis requires date parsing implementation",
-                        "certificates": cert_list[:10],  # Limiter l'affichage
+                        "certificates": cert_list[:10],  # Limit display
                     },
                 }
         except Exception as e:
-            logger.error(f"Erreur lors de la vérification des certificats: {e}")
+            logger.error(f"Error checking certificates: {e}")
             raise
 
     @handle_panorama_errors
     async def check_version_compliance(self) -> Dict[str, Any]:
         """
-        Vérifie la conformité des versions PAN-OS, Threat, AV, Wildfire
+        Check PAN-OS, Threat, AV, Wildfire version compliance
 
         Returns:
-            Dict avec l'état des versions sur Panorama et les firewalls
+            Dict with version status on Panorama and firewalls
         """
-        # Récupérer info système Panorama
+        # Get Panorama system info
         panorama_info = await self.get_system_info()
 
-        # Récupérer info devices
+        # Get devices info
         devices_info = await self.get_managed_devices()
 
         if not panorama_info["success"] or not devices_info["success"]:
             return {
                 "success": False,
-                "error": "Erreur de récupération des informations",
+                "error": "Failed to retrieve information",
                 "data": None,
             }
 
-        # Compiler les versions
+        # Compile versions
         versions_summary = {
             "panorama": {
                 "sw_version": panorama_info["data"].get("sw_version", "N/A"),
@@ -1071,8 +1070,8 @@ class PanoramaConnector:
             "devices_versions": {},
         }
 
-        # Analyser versions des devices
-        for device in devices_info["data"]["devices"][:10]:  # Limiter à 10
+        # Analyze device versions
+        for device in devices_info["data"]["devices"][:10]:  # Limit to 10
             versions_summary["devices_versions"][device["serial"]] = {
                 "version": device["version"],
                 "model": device["model"],
@@ -1085,24 +1084,24 @@ class PanoramaConnector:
         self, device_group: str, days: int = 30, limit: int = 100
     ) -> Dict[str, Any]:
         """
-        Identifie les règles jamais matchées via les traffic logs
+        Identify rules that have never been matched via traffic logs
 
         Args:
-            device_group: Nom du device-group
-            days: Période d'analyse en jours (défaut: 30)
-            limit: Limite de résultats
+            device_group: Device-group name
+            days: Analysis period in days (default: 30)
+            limit: Result limit
 
         Returns:
-            Dict avec les règles jamais matchées
+            Dict with never-matched rules
         """
-        # Note: Cette fonction nécessite l'accès aux traffic logs
-        # L'API Panorama supporte les queries de logs via type=log&log-type=traffic
-        # Pour une implémentation complète, il faudrait:
-        # 1. Récupérer toutes les règles du device-group
-        # 2. Query les traffic logs pour chaque règle
-        # 3. Identifier celles sans match
+        # Note: This function requires access to traffic logs
+        # Panorama API supports log queries via type=log&log-type=traffic
+        # For a complete implementation, we would need to:
+        # 1. Retrieve all rules from the device-group
+        # 2. Query traffic logs for each rule
+        # 3. Identify those without matches
 
-        # Implémentation simplifiée: retourner structure de base
+        # Simplified implementation: return base structure
         return {
             "success": True,
             "error": None,
@@ -1118,22 +1117,22 @@ class PanoramaConnector:
     @handle_panorama_errors
     async def find_duplicate_addresses(self, limit: int = 100) -> Dict[str, Any]:
         """
-        Identifie les objets Address en doublon (même IP, noms différents)
+        Identify duplicate Address objects (same IP, different names)
 
         Args:
-            limit: Limite de résultats
+            limit: Result limit
 
         Returns:
-            Dict avec les adresses en doublon détectées
+            Dict with detected duplicate addresses
         """
         if not await self._ensure_authenticated():
             return {
                 "success": False,
-                "error": "Échec de l'authentification",
+                "error": "Authentication failed",
                 "data": None,
             }
 
-        # Récupérer tous les objets address
+        # Retrieve all address objects
         xpath = "/config/devices/entry[@name='localhost.localdomain']/device-group/entry/address"
         params = {
             "type": "config",
@@ -1153,7 +1152,7 @@ class PanoramaConnector:
                 if not result["success"]:
                     return result
 
-                # Parser les adresses
+                # Parse addresses
                 data = result.get("data")
                 addresses = []
 
@@ -1168,7 +1167,7 @@ class PanoramaConnector:
                     elif isinstance(addr_data, list):
                         addresses = addr_data[:limit]
 
-                # Détecter les doublons (même IP, noms différents)
+                # Detect duplicates (same IP, different names)
                 ip_map = {}
                 duplicates = []
 
@@ -1198,28 +1197,28 @@ class PanoramaConnector:
                     },
                 }
         except Exception as e:
-            logger.error(f"Erreur lors de la détection des doublons: {e}")
+            logger.error(f"Error detecting duplicates: {e}")
             raise
 
     @handle_panorama_errors
     async def find_unused_zones(self, limit: int = 100) -> Dict[str, Any]:
         """
-        Identifie les zones non utilisées dans les règles
+        Identify zones not used in security rules
 
         Args:
-            limit: Limite de résultats
+            limit: Result limit
 
         Returns:
-            Dict avec les zones non utilisées
+            Dict with unused zones
         """
         if not await self._ensure_authenticated():
             return {
                 "success": False,
-                "error": "Échec de l'authentification",
+                "error": "Authentication failed",
                 "data": None,
             }
 
-        # Récupérer les zones configurées
+        # Retrieve configured zones
         xpath_zones = "/config/devices/entry[@name='localhost.localdomain']/vsys/entry[@name='vsys1']/zone"
         params = {
             "type": "config",
@@ -1239,7 +1238,7 @@ class PanoramaConnector:
                 if not result["success"]:
                     return result
 
-                # Parser les zones
+                # Parse zones
                 data = result.get("data")
                 zones = []
 
@@ -1270,26 +1269,25 @@ class PanoramaConnector:
                     },
                 }
         except Exception as e:
-            logger.error(f"Erreur lors de l'analyse des zones: {e}")
+            logger.error(f"Error analyzing zones: {e}")
             raise
 
     @handle_panorama_errors
     async def find_local_overrides(self, limit: int = 100) -> Dict[str, Any]:
         """
-        Identifie les overrides locaux non gérés par Panorama
+        Identify local overrides not managed by Panorama
 
         Args:
-            limit: Limite de résultats
+            limit: Result limit
 
         Returns:
-            Dict avec les overrides locaux détectés
+            Dict with detected local overrides
         """
-        # Les overrides locaux sont des configurations faites directement
-        # sur les firewalls et non via Panorama, ce qui pose des problèmes
-        # de gestion centralisée
+        # Local overrides are configurations made directly on firewalls
+        # and not through Panorama, which causes centralized management issues
 
-        # Cette fonction nécessite de comparer la config Panorama avec
-        # la config de chaque firewall individuel
+        # This function requires comparing Panorama config with
+        # each individual firewall's config
 
         return {
             "success": True,
@@ -1303,17 +1301,17 @@ class PanoramaConnector:
 
 
 # ============================================================================
-# FONCTIONS ASYNCHRONES À EXPOSER VIA MCP
+# ASYNC FUNCTIONS EXPOSED VIA MCP
 # ============================================================================
 
 
 async def panorama_generate_api_key() -> dict:
     """
-    Génère et retourne une clé API Panorama
+    Generate and return a Panorama API key
 
     Returns:
-        Dict avec la clé API au format JSON
-        Exemple: {"success": True, "data": {"api_key": "******"}}
+        Dict with API key in JSON format
+        Example: {"success": True, "data": {"api_key": "******"}}
     """
     connector = PanoramaConnector()
     return await connector.generate_api_key()
@@ -1321,17 +1319,17 @@ async def panorama_generate_api_key() -> dict:
 
 async def panorama_get_system_info() -> dict:
     """
-    Récupère les informations système de Panorama
+    Retrieve Panorama system information
 
     Returns:
-        Dict JSON normalisé avec:
+        Normalized JSON dict with:
         - hostname
         - version
         - uptime
         - model
         - serial
         - operational_mode
-        Et autres métadonnées système
+        And other system metadata
     """
     connector = PanoramaConnector()
     return await connector.get_system_info()
@@ -1339,41 +1337,41 @@ async def panorama_get_system_info() -> dict:
 
 async def panorama_execute_command(cmd: str) -> dict:
     """
-    Exécute une commande opérationnelle personnalisée sur Panorama
+    Execute a custom operational command on Panorama
 
     Args:
-        cmd: Commande XML au format PAN-OS API
-             Exemple: "<show><system><info></info></system></show>"
+        cmd: XML command in PAN-OS API format
+             Example: "<show><system><info></info></system></show>"
 
     Returns:
-        Dict JSON avec les données normalisées (jamais de XML en sortie)
+        JSON dict with normalized data (never XML in output)
     """
     connector = PanoramaConnector()
     return await connector.execute_op_command(cmd)
 
 
 # ============================================================================
-# NOUVELLES FONCTIONS D'ANALYSE ET CONFORMITÉ (EXPOSÉES VIA MCP)
+# ANALYSIS AND COMPLIANCE FUNCTIONS (EXPOSED VIA MCP)
 # ============================================================================
 
 
 async def panorama_get_managed_devices() -> dict:
     """
-    Récupère l'inventaire complet des firewalls gérés par Panorama
+    Retrieve complete inventory of firewalls managed by Panorama
 
     Returns:
-        Dict JSON avec:
-        - total_devices: Nombre total de devices
-        - devices: Liste des devices avec leurs informations
-          - device: Nom du device
-          - serial: Numéro de série
-          - version: Version PAN-OS
-          - ha_state: État HA (active, passive, etc.)
-          - connected: Statut de connexion (boolean)
-          - ip_address: Adresse IP
-          - model: Modèle du firewall
-          - uptime: Temps de fonctionnement
-          - plugins: Liste des plugins installés
+        JSON dict with:
+        - total_devices: Total number of devices
+        - devices: List of devices with their information
+          - device: Device name
+          - serial: Serial number
+          - version: PAN-OS version
+          - ha_state: HA state (active, passive, etc.)
+          - connected: Connection status (boolean)
+          - ip_address: IP address
+          - model: Firewall model
+          - uptime: Uptime
+          - plugins: List of installed plugins
     """
     connector = PanoramaConnector()
     return await connector.get_managed_devices()
@@ -1381,15 +1379,15 @@ async def panorama_get_managed_devices() -> dict:
 
 async def panorama_get_device_groups() -> dict:
     """
-    Récupère la liste des Device-Groups configurés dans Panorama
+    Retrieve list of Device-Groups configured in Panorama
 
     Returns:
-        Dict JSON avec:
-        - total_device_groups: Nombre total de device-groups
-        - device_groups: Liste des device-groups
-          - name: Nom du device-group
-          - devices: Liste des devices membres
-          - device_count: Nombre de devices dans le groupe
+        JSON dict with:
+        - total_device_groups: Total number of device-groups
+        - device_groups: List of device-groups
+          - name: Device-group name
+          - devices: List of member devices
+          - device_count: Number of devices in the group
     """
     connector = PanoramaConnector()
     return await connector.get_device_groups()
@@ -1397,13 +1395,13 @@ async def panorama_get_device_groups() -> dict:
 
 async def panorama_get_config_diff() -> dict:
     """
-    Récupère les différences entre la configuration candidate et running
+    Retrieve differences between candidate and running configuration
 
     Returns:
-        Dict JSON avec:
-        - has_pending_changes: Boolean indiquant si des changements sont en attente
-        - diff_summary: Résumé des changements
-        - diff_content: Contenu détaillé du diff (null si aucun changement)
+        JSON dict with:
+        - has_pending_changes: Boolean indicating if changes are pending
+        - diff_summary: Summary of changes
+        - diff_content: Detailed diff content (null if no changes)
     """
     connector = PanoramaConnector()
     return await connector.get_config_diff()
@@ -1411,22 +1409,22 @@ async def panorama_get_config_diff() -> dict:
 
 async def panorama_analyze_security_rules(device_group: str) -> dict:
     """
-    Analyse les règles de sécurité d'un Device-Group
-    Identifie les problèmes de qualité et de conformité
+    Analyze security rules for a Device-Group
+    Identifies quality and compliance issues
 
     Args:
-        device_group: Nom du device-group à analyser
+        device_group: Device-group name to analyze
 
     Returns:
-        Dict JSON avec:
-        - device_group: Nom du device-group analysé
-        - total_rules: Nombre total de règles
-        - rules: Liste des règles avec leurs informations
-        - quality_issues: Analyse de qualité
-          - rules_without_description: Nombre de règles sans description
-          - rules_with_generic_names: Nombre de règles avec noms génériques
-          - too_permissive_rules: Nombre de règles trop permissives (any/any/any)
-          - details: Détails des règles problématiques
+        JSON dict with:
+        - device_group: Analyzed device-group name
+        - total_rules: Total number of rules
+        - rules: List of rules with their information
+        - quality_issues: Quality analysis
+          - rules_without_description: Number of rules without description
+          - rules_with_generic_names: Number of rules with generic names
+          - too_permissive_rules: Number of overly permissive rules (any/any/any)
+          - details: Details of problematic rules
     """
     connector = PanoramaConnector()
     return await connector.get_security_rules_by_device_group(device_group)
@@ -1434,20 +1432,20 @@ async def panorama_analyze_security_rules(device_group: str) -> dict:
 
 async def panorama_get_audit_logs(limit: int = 100) -> dict:
     """
-    Récupère l'historique des modifications de configuration (audit logs)
+    Retrieve configuration change history (audit logs)
 
     Args:
-        limit: Nombre maximum de logs à retourner (défaut: 100, max: 1000)
+        limit: Maximum number of logs to return (default: 100, max: 1000)
 
     Returns:
-        Dict JSON avec:
-        - total_logs: Nombre de logs retournés
-        - logs: Liste des modifications
-          - time: Date/heure de la modification
-          - admin: Administrateur ayant effectué le changement
-          - command: Commande exécutée
-          - result: Résultat (success, failure)
-          - path: Chemin de configuration modifié
+        JSON dict with:
+        - total_logs: Number of logs returned
+        - logs: List of changes
+          - time: Date/time of the change
+          - admin: Administrator who made the change
+          - command: Command executed
+          - result: Result (success, failure)
+          - path: Modified configuration path
     """
     connector = PanoramaConnector()
     return await connector.get_config_audit_logs(limit)
@@ -1455,17 +1453,17 @@ async def panorama_get_audit_logs(limit: int = 100) -> dict:
 
 async def panorama_get_unused_objects(object_type: str = "address") -> dict:
     """
-    Identifie les objets non utilisés dans la configuration Panorama
+    Identify unused objects in Panorama configuration
 
     Args:
-        object_type: Type d'objet à analyser (défaut: "address")
+        object_type: Object type to analyze (default: "address")
 
     Returns:
-        Dict JSON avec:
-        - object_type: Type d'objet analysé
-        - total_objects: Nombre total d'objets
-        - unused_count: Nombre d'objets non utilisés
-        - unused_objects: Liste des objets non utilisés (max 100)
+        JSON dict with:
+        - object_type: Analyzed object type
+        - total_objects: Total number of objects
+        - unused_count: Number of unused objects
+        - unused_objects: List of unused objects (max 100)
     """
     connector = PanoramaConnector()
     return await connector.get_unused_objects(object_type)
@@ -1475,18 +1473,18 @@ async def panorama_check_rules_without_profile(
     device_group: str, limit: int = 100
 ) -> dict:
     """
-    Identifie les règles de sécurité sans Security Profile Group
+    Identify security rules without Security Profile Group
 
     Args:
-        device_group: Nom du device-group à analyser
-        limit: Nombre maximum de règles à analyser (défaut: 100)
+        device_group: Device-group name to analyze
+        limit: Maximum number of rules to analyze (default: 100)
 
     Returns:
-        Dict JSON avec:
-        - device_group: Nom du device-group analysé
-        - total_rules_analyzed: Nombre total de règles analysées
-        - rules_without_profile: Liste des règles sans Security Profile
-        - count: Nombre de règles sans profile
+        JSON dict with:
+        - device_group: Analyzed device-group name
+        - total_rules_analyzed: Total number of rules analyzed
+        - rules_without_profile: List of rules without Security Profile
+        - count: Number of rules without profile
     """
     connector = PanoramaConnector()
     return await connector.check_rules_without_security_profile(device_group, limit)
@@ -1494,19 +1492,19 @@ async def panorama_check_rules_without_profile(
 
 async def panorama_get_expiring_certificates(days_threshold: int = 30) -> dict:
     """
-    Vérifie les certificats proches de l'expiration
+    Check for certificates approaching expiration
 
     Args:
-        days_threshold: Seuil en jours pour considérer un certificat comme expirant (défaut: 30)
+        days_threshold: Threshold in days to consider a certificate as expiring (default: 30)
 
     Returns:
-        Dict JSON avec:
-        - days_threshold: Seuil utilisé
-        - total_certificates: Nombre total de certificats
-        - expiring_certificates: Liste des certificats expirant bientôt
-        - expired_certificates: Liste des certificats déjà expirés
-        - expiring_count: Nombre de certificats expirant
-        - expired_count: Nombre de certificats expirés
+        JSON dict with:
+        - days_threshold: Threshold used
+        - total_certificates: Total number of certificates
+        - expiring_certificates: List of certificates expiring soon
+        - expired_certificates: List of already expired certificates
+        - expiring_count: Number of expiring certificates
+        - expired_count: Number of expired certificates
     """
     connector = PanoramaConnector()
     return await connector.get_expiring_certificates(days_threshold)
@@ -1514,16 +1512,16 @@ async def panorama_get_expiring_certificates(days_threshold: int = 30) -> dict:
 
 async def panorama_check_version_compliance() -> dict:
     """
-    Vérifie la conformité des versions PAN-OS, Threat, AV, Wildfire
+    Check PAN-OS, Threat, AV, Wildfire version compliance
 
     Returns:
-        Dict JSON avec:
-        - panorama: Versions installées sur Panorama
-          - sw_version: Version PAN-OS
-          - threat_version: Version base de données Threat
-          - av_version: Version antivirus
-          - wildfire_version: Version Wildfire
-        - devices_versions: Versions des devices (limité à 10)
+        JSON dict with:
+        - panorama: Versions installed on Panorama
+          - sw_version: PAN-OS version
+          - threat_version: Threat database version
+          - av_version: Antivirus version
+          - wildfire_version: Wildfire version
+        - devices_versions: Device versions (limited to 10)
           - [serial]: {version, model}
     """
     connector = PanoramaConnector()
@@ -1534,20 +1532,20 @@ async def panorama_find_never_matched_rules(
     device_group: str, days: int = 30, limit: int = 100
 ) -> dict:
     """
-    Identifie les règles jamais matchées via les traffic logs
+    Identify rules that have never been matched via traffic logs
 
     Args:
-        device_group: Nom du device-group à analyser
-        days: Période d'analyse en jours (défaut: 30)
-        limit: Nombre maximum de règles à analyser (défaut: 100)
+        device_group: Device-group name to analyze
+        days: Analysis period in days (default: 30)
+        limit: Maximum number of rules to analyze (default: 100)
 
     Returns:
-        Dict JSON avec:
-        - device_group: Nom du device-group analysé
-        - days_analyzed: Période analysée en jours
-        - never_matched_rules: Liste des règles jamais matchées
-        - total_analyzed: Nombre de règles analysées
-        - note: Note sur l'implémentation
+        JSON dict with:
+        - device_group: Analyzed device-group name
+        - days_analyzed: Analysis period in days
+        - never_matched_rules: List of never-matched rules
+        - total_analyzed: Number of rules analyzed
+        - note: Implementation note
     """
     connector = PanoramaConnector()
     return await connector.find_never_matched_rules(device_group, days, limit)
@@ -1555,18 +1553,18 @@ async def panorama_find_never_matched_rules(
 
 async def panorama_find_duplicate_addresses(limit: int = 100) -> dict:
     """
-    Identifie les objets Address en doublon (même IP, noms différents)
+    Identify duplicate Address objects (same IP, different names)
 
     Args:
-        limit: Nombre maximum d'adresses à analyser (défaut: 100)
+        limit: Maximum number of addresses to analyze (default: 100)
 
     Returns:
-        Dict JSON avec:
-        - total_addresses: Nombre total d'adresses analysées
-        - duplicates_found: Nombre de doublons détectés
-        - duplicates: Liste des doublons
-          - ip: Adresse IP en doublon
-          - names: Liste des noms différents pour cette IP
+        JSON dict with:
+        - total_addresses: Total number of addresses analyzed
+        - duplicates_found: Number of duplicates detected
+        - duplicates: List of duplicates
+          - ip: Duplicate IP address
+          - names: List of different names for this IP
     """
     connector = PanoramaConnector()
     return await connector.find_duplicate_addresses(limit)
@@ -1574,16 +1572,16 @@ async def panorama_find_duplicate_addresses(limit: int = 100) -> dict:
 
 async def panorama_find_unused_zones(limit: int = 100) -> dict:
     """
-    Identifie les zones non utilisées dans les règles
+    Identify zones not used in security rules
 
     Args:
-        limit: Nombre maximum de zones à analyser (défaut: 100)
+        limit: Maximum number of zones to analyze (default: 100)
 
     Returns:
-        Dict JSON avec:
-        - total_zones: Nombre total de zones configurées
-        - zones: Liste des zones configurées
-        - note: Note sur l'analyse d'utilisation
+        JSON dict with:
+        - total_zones: Total number of configured zones
+        - zones: List of configured zones
+        - note: Note on usage analysis
     """
     connector = PanoramaConnector()
     return await connector.find_unused_zones(limit)
@@ -1591,16 +1589,16 @@ async def panorama_find_unused_zones(limit: int = 100) -> dict:
 
 async def panorama_find_local_overrides(limit: int = 100) -> dict:
     """
-    Identifie les overrides locaux non gérés par Panorama
+    Identify local overrides not managed by Panorama
 
     Args:
-        limit: Nombre maximum de devices à vérifier (défaut: 100)
+        limit: Maximum number of devices to check (default: 100)
 
     Returns:
-        Dict JSON avec:
-        - total_devices_checked: Nombre de devices vérifiés
-        - devices_with_overrides: Liste des devices avec overrides locaux
-        - note: Note sur l'implémentation
+        JSON dict with:
+        - total_devices_checked: Number of devices checked
+        - devices_with_overrides: List of devices with local overrides
+        - note: Implementation note
     """
     connector = PanoramaConnector()
     return await connector.find_local_overrides(limit)
