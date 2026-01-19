@@ -68,7 +68,6 @@ from connectors.mikrotik_c import (
     get_system_routerboard,
 )
 from connectors.mikrotik_ssh_c import mikrotik_custom_command, mikrotik_route_check
-from connectors.paloalto_c import palo_send_command, palo_send_command_parallel
 from connectors.ndfc_c import (
     get_all_switches,
     get_deployment_history,
@@ -82,8 +81,31 @@ from connectors.ndfc_c import (
     get_sites,
     get_switches,
     get_vrfs,
+)
+from connectors.ndfc_c import (
     login as ndfc_login_func,
+)
+from connectors.ndfc_c import (
     logout as ndfc_logout_func,
+)
+from connectors.paloalto_c import palo_send_command, palo_send_command_parallel
+from connectors.panorama_c import (
+    panorama_analyze_security_rules,
+    panorama_check_rules_without_profile,
+    panorama_check_version_compliance,
+    panorama_execute_command,
+    panorama_find_duplicate_addresses,
+    panorama_find_local_overrides,
+    panorama_find_never_matched_rules,
+    panorama_find_unused_zones,
+    panorama_generate_api_key,
+    panorama_get_audit_logs,
+    panorama_get_config_diff,
+    panorama_get_device_groups,
+    panorama_get_expiring_certificates,
+    panorama_get_managed_devices,
+    panorama_get_system_info,
+    panorama_get_unused_objects,
 )
 
 # Import the necessary functions
@@ -577,7 +599,9 @@ async def apic_get_physical_interfaces(node_id: Optional[str] = None) -> dict:
 
 
 @mcp.tool()
-async def apic_get_interface_statistics(node_id: Optional[str] = None, interface: Optional[str] = None) -> dict:
+async def apic_get_interface_statistics(
+    node_id: Optional[str] = None, interface: Optional[str] = None
+) -> dict:
     """
     Retrieve interface statistics for specific node and/or interface.
 
@@ -678,7 +702,9 @@ async def apic_get_resource_utilization() -> dict:
 
 
 @mcp.tool()
-async def apic_get_traffic_analysis(tenant: Optional[str] = None, epg: Optional[str] = None) -> dict:
+async def apic_get_traffic_analysis(
+    tenant: Optional[str] = None, epg: Optional[str] = None
+) -> dict:
     """
     Analyze network traffic for a tenant or EPG.
 
@@ -916,7 +942,9 @@ async def ndfc_get_all_switches() -> dict:
 
 
 @mcp.tool()
-async def ndfc_get_event_records(limit: Optional[int] = 50, severity: Optional[str] = None) -> dict:
+async def ndfc_get_event_records(
+    limit: Optional[int] = 50, severity: Optional[str] = None
+) -> dict:
     """
     Get event records from Nexus Dashboard event monitoring.
     This endpoint provides critical events, alarms, and system notifications.
@@ -930,6 +958,230 @@ async def ndfc_get_event_records(limit: Optional[int] = 50, severity: Optional[s
         Results are automatically limited client-side if API returns more than requested.
     """
     return await get_event_records(limit, severity)
+
+
+# ========== Palo Alto Panorama Tools ==========
+@mcp.tool()
+async def panorama_system_info() -> dict:
+    """
+    Get Panorama system information.
+
+    Returns:
+        Dict with hostname, version, uptime, serial, model, and security versions
+        (threat, AV, wildfire, URL filtering)
+    """
+    return await panorama_get_system_info()
+
+
+@mcp.tool()
+async def panorama_managed_devices() -> dict:
+    """
+    Get inventory of all firewalls managed by Panorama.
+
+    Returns:
+        Dict with total_devices count and devices list containing:
+        - device name, serial, version, HA state, connection status
+        - IP address, model, uptime, installed plugins
+    """
+    return await panorama_get_managed_devices()
+
+
+@mcp.tool()
+async def panorama_device_groups() -> dict:
+    """
+    Get list of Device-Groups and their member firewalls.
+
+    Returns:
+        Dict with total_device_groups count and device_groups list
+        containing name, member devices, and device count
+    """
+    return await panorama_get_device_groups()
+
+
+@mcp.tool()
+async def panorama_config_diff() -> dict:
+    """
+    Get pending configuration changes (candidate vs running config).
+
+    Returns:
+        Dict with has_pending_changes boolean, diff_summary, and diff_content
+    """
+    return await panorama_get_config_diff()
+
+
+@mcp.tool()
+async def panorama_security_rules_analysis(device_group: str) -> dict:
+    """
+    Analyze security rules quality for a Device-Group.
+
+    Args:
+        device_group: Name of the device-group to analyze
+
+    Returns:
+        Dict with rules list and quality_issues analysis:
+        - rules_without_description count
+        - rules_with_generic_names count
+        - too_permissive_rules count (any/any/any)
+        - details with specific rule names
+    """
+    return await panorama_analyze_security_rules(device_group)
+
+
+@mcp.tool()
+async def panorama_audit_logs(limit: int = 100) -> dict:
+    """
+    Get configuration audit logs (who changed what, when).
+
+    Args:
+        limit: Maximum number of logs to return (default: 100, max: 1000)
+
+    Returns:
+        Dict with total_logs count and logs list containing:
+        - time, admin, command, result, path
+    """
+    return await panorama_get_audit_logs(limit)
+
+
+@mcp.tool()
+async def panorama_unused_objects(object_type: str = "address") -> dict:
+    """
+    Find unused address objects in Panorama configuration.
+
+    Args:
+        object_type: Type of object to analyze (default: "address")
+
+    Returns:
+        Dict with total_objects, unused_count, and unused_objects list
+    """
+    return await panorama_get_unused_objects(object_type)
+
+
+@mcp.tool()
+async def panorama_rules_without_profile(device_group: str, limit: int = 100) -> dict:
+    """
+    Find security rules without Security Profile Group attached.
+
+    Args:
+        device_group: Name of the device-group to analyze
+        limit: Maximum number of rules to analyze (default: 100)
+
+    Returns:
+        Dict with total_rules_analyzed, rules_without_profile list, and count
+    """
+    return await panorama_check_rules_without_profile(device_group, limit)
+
+
+@mcp.tool()
+async def panorama_expiring_certificates(days_threshold: int = 30) -> dict:
+    """
+    Check for certificates expiring within threshold days.
+
+    Args:
+        days_threshold: Days before expiration to alert (default: 30)
+
+    Returns:
+        Dict with total_certificates, expiring_certificates list,
+        expired_certificates list, and counts
+    """
+    return await panorama_get_expiring_certificates(days_threshold)
+
+
+@mcp.tool()
+async def panorama_version_compliance() -> dict:
+    """
+    Check PAN-OS, Threat, AV, Wildfire version compliance across devices.
+
+    Returns:
+        Dict with panorama versions and devices_versions showing
+        version and model for each managed firewall
+    """
+    return await panorama_check_version_compliance()
+
+
+@mcp.tool()
+async def panorama_duplicate_addresses(limit: int = 100) -> dict:
+    """
+    Find duplicate address objects (same IP, different names).
+
+    Args:
+        limit: Maximum number of addresses to analyze (default: 100)
+
+    Returns:
+        Dict with total_addresses, duplicates_found count, and
+        duplicates list with IP and conflicting names
+    """
+    return await panorama_find_duplicate_addresses(limit)
+
+
+@mcp.tool()
+async def panorama_custom_command(cmd: str) -> dict:
+    """
+    Execute custom operational command on Panorama.
+
+    Args:
+        cmd: XML command (e.g., "<show><system><info></info></system></show>")
+
+    Returns:
+        Dict with command execution results in JSON format
+    """
+    return await panorama_execute_command(cmd)
+
+
+@mcp.tool()
+async def panorama_unused_zones(limit: int = 100) -> dict:
+    """
+    Find unused zones in security rules.
+
+    Args:
+        limit: Maximum number of zones to analyze (default: 100)
+
+    Returns:
+        Dict with total_zones and zones list
+    """
+    return await panorama_find_unused_zones(limit)
+
+
+@mcp.tool()
+async def panorama_never_matched_rules(
+    device_group: str, days: int = 30, limit: int = 100
+) -> dict:
+    """
+    Find security rules that never matched traffic.
+
+    Args:
+        device_group: Name of the device-group to analyze
+        days: Analysis period in days (default: 30)
+        limit: Maximum number of rules to analyze (default: 100)
+
+    Returns:
+        Dict with never_matched_rules list and analysis details
+    """
+    return await panorama_find_never_matched_rules(device_group, days, limit)
+
+
+@mcp.tool()
+async def panorama_local_overrides(limit: int = 100) -> dict:
+    """
+    Find local overrides not managed by Panorama.
+
+    Args:
+        limit: Maximum number of devices to check (default: 100)
+
+    Returns:
+        Dict with devices_with_overrides list
+    """
+    return await panorama_find_local_overrides(limit)
+
+
+@mcp.tool()
+async def panorama_generate_key() -> dict:
+    """
+    Generate and return a Panorama API key.
+
+    Returns:
+        Dict with api_key for manual API operations
+    """
+    return await panorama_generate_api_key()
 
 
 # Entry Point

@@ -19,21 +19,22 @@ Expose network devices, WiFi controllers, monitoring systems, and data centers t
 - **Persistent sessions**: Reusable HTTP connections with keepalive to minimize latency
 - **Smart JWT caching**: Thread-safe authentication token management with automatic renewal
 
-### 9 Specialized Connectors
+### 10 Specialized Connectors
 
 | Connector | Type | MCP Tools | Description |
 |-----------|------|-----------|-------------|
 | **Generic SSH** | SSH | 2 | Universal CLI access to any SSH device (Cisco, Juniper, Arista, Linux, etc.) |
 | **MikroTik REST** | REST API | 9 | Complete management via REST API (interfaces, BGP, routing, system health) |
 | **MikroTik SSH** | SSH | 2 | Specific commands unavailable in REST (route check, custom commands) |
-| **Palo Alto** | SSH PTY | 2 | PAN-OS firewalls with PTY interactive sessions (VPN, routing, system) |
+| **Palo Alto SSH** | SSH PTY | 2 | PAN-OS firewalls with PTY interactive sessions (VPN, routing, system) |
+| **Palo Alto Panorama** | REST API | 16 | Panorama centralized management (devices, device-groups, security rules, compliance, audit) |
 | **Aruba WiFi** | REST API | 9 | WiFi controller (APs, clients, rogues, RF, WLANs, statistics) |
 | **Graylog** | REST API | 3 | Centralized log search with time filters and streaming |
 | **LibreNMS** | REST API | 10 | Network monitoring (inventory, health, ports, sensors, events) |
 | **Cisco APIC (ACI)** | REST API | 35 | ACI data center (fabric, tenants, EPGs, VRFs, contracts, topology, analytics) |
 | **Cisco NDFC** | REST API | 15 | Nexus Dashboard Fabric Controller (fabrics, switches, networks, VRFs, events) |
 
-**Total: ~100 exposed MCP tools**
+**Total: ~115 exposed MCP tools**
 
 ---
 
@@ -116,6 +117,12 @@ NDFC_PASSWORD="ndfc_password"
 NDFC_DOMAIN="DefaultAuth"
 NDFC_VERIFY_SSL="false"
 NDFC_TIMEOUT="30"
+
+# Palo Alto Panorama
+PANORAMA_URL="https://panorama.example.com/api"
+PANORAMA_USERNAME="panorama_user"
+PANORAMA_PASSWORD="panorama_password"
+PANORAMA_TIMEOUT="30"
 ```
 
 **Security Note**: The `.env` file is excluded from version control via `.gitignore`. Never commit credentials to the repository.
@@ -247,6 +254,19 @@ Display VRFs in fabric DC1
 Show network deployment status
 ```
 
+#### Palo Alto Panorama
+```
+Show Panorama system information
+List all managed firewalls
+Show device groups and their members
+Analyze security rules quality for device-group Production
+Find rules without security profile in device-group DMZ
+Check version compliance across all firewalls
+Show configuration audit logs
+Find duplicate address objects
+Show pending configuration changes
+```
+
 ---
 
 ## Technical Architecture
@@ -261,6 +281,7 @@ git-netai/
 │   ├── mikrotik_c.py           # MikroTik REST API connector (httpx)
 │   ├── mikrotik_ssh_c.py       # MikroTik SSH connector (asyncssh)
 │   ├── paloalto_c.py           # Palo Alto SSH PTY connector (asyncssh)
+│   ├── panorama_c.py           # Palo Alto Panorama REST API connector (httpx + XML→JSON)
 │   ├── aruba_c.py              # Aruba WiFi REST API connector (httpx)
 │   ├── graylog_c.py            # Graylog REST API connector (httpx)
 │   ├── librenms_c.py           # LibreNMS REST API connector (httpx)
@@ -493,22 +514,23 @@ logging.basicConfig(handlers=[handler], level=logging.INFO)
 ### Current Implementation
 
 - [x] 100% asynchronous architecture (asyncio/asyncssh/httpx)
-- [x] 9 connectors (SSH, MikroTik REST+SSH, Aruba, Palo Alto, Graylog, LibreNMS, APIC, NDFC)
-- [x] ~100 exposed MCP tools
+- [x] 10 connectors (SSH, MikroTik REST+SSH, Aruba, Palo Alto SSH, Panorama, Graylog, LibreNMS, APIC, NDFC)
+- [x] ~115 exposed MCP tools
 - [x] Smart JWT cache with automatic renewal
 - [x] Persistent HTTP sessions with keepalive
 - [x] Parallel execution with timeout protection
 - [x] PTY support for Palo Alto PAN-OS
 - [x] Modern UV management (pyproject.toml + uv.lock)
+- [x] Panorama API integration with XML→JSON conversion
 
 ### Planned Enhancements
 
 **Additional Platform Support & more endpoints:**
 
-- [ ] Integration API Panorama
 - [ ] Add more LibreNMS endpoints (alerts, device groups, inventory)
 - [ ] Add more APIC endpoints (troubleshooting, change management)
 - [ ] Expand Aruba capabilities (RF analytics, heat maps)
+- [ ] Expand Panorama capabilities (policy push, commit operations)
 
 ---
 
